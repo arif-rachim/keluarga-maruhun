@@ -4,3 +4,7 @@ dist
 *.local
 .vite
 .playwright-mcp
+
+# Screenshot debug di root (bukan aset app)
+/*.png
+/preview.log

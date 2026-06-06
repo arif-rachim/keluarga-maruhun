@@ -11,7 +11,7 @@ function detectInitial() {
   } catch {
     // abaikan
   }
-  return 'id'
+  return 'min'
 }
 
 export function I18nProvider({ children }) {
@@ -30,8 +30,8 @@ export function I18nProvider({ children }) {
   // t(key, vars) — ambil teks + ganti {placeholder}.
   const t = useCallback(
     (key, vars) => {
-      const dict = translations[lang] || translations.id
-      let str = dict[key] ?? translations.id[key] ?? key
+      const dict = translations[lang] || translations.min
+      let str = dict[key] ?? translations.min[key] ?? translations.en[key] ?? key
       if (vars) {
         for (const k of Object.keys(vars)) {
           str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), vars[k])

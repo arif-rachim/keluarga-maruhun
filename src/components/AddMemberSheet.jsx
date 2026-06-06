@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { IconClose, IconCamera, IconUser } from './icons.jsx'
+import { IconClose, IconCamera, IconUser, IconEdit } from './icons.jsx'
 import { useI18n } from '../i18n/i18n.jsx'
 
 // Ubah file gambar menjadi data-URL terkompres agar muat di localStorage.
@@ -28,19 +28,34 @@ async function fileToCompressedDataURL(file, max = 320) {
   return canvas.toDataURL('image/jpeg', 0.82)
 }
 
-export function AddMemberSheet({ people, anchorId, anchorType, onClose, onSubmit }) {
+export function AddMemberSheet({ people, anchorId, anchorType, editPerson, onClose, onSubmit }) {
   const { t } = useI18n()
-  const [form, setForm] = useState({
-    name: '',
-    gender: 'L',
-    birthYear: '',
-    deathYear: '',
-    city: '',
-    country: '',
-    phone: '',
-    bio: '',
-    photo: null,
-  })
+  const isEdit = !!editPerson
+  const [form, setForm] = useState(() =>
+    editPerson
+      ? {
+          name: editPerson.name || '',
+          gender: editPerson.gender ?? 'L',
+          birthYear: editPerson.birthYear ?? '',
+          deathYear: editPerson.deathYear ?? '',
+          city: editPerson.city || '',
+          country: editPerson.country || '',
+          phone: editPerson.phone || '',
+          bio: editPerson.bio || '',
+          photo: editPerson.photo || null,
+        }
+      : {
+          name: '',
+          gender: 'L',
+          birthYear: '',
+          deathYear: '',
+          city: '',
+          country: '',
+          phone: '',
+          bio: '',
+          photo: null,
+        },
+  )
   const [relType, setRelType] = useState(anchorType || 'child') // 'child' | 'spouse'
   const [anchor, setAnchor] = useState(anchorId || people[0]?.id || '')
   const [error, setError] = useState('')
@@ -68,24 +83,28 @@ export function AddMemberSheet({ people, anchorId, anchorType, onClose, onSubmit
       setError(t('add.err_name'))
       return
     }
-    if (!anchor) {
+    if (!isEdit && !anchor) {
       setError(t('add.err_anchor'))
       return
     }
-    onSubmit(
-      {
-        ...form,
-        birthYear: form.birthYear ? Number(form.birthYear) : null,
-        deathYear: form.deathYear ? Number(form.deathYear) : null,
-      },
-      { type: relType, anchorId: anchor },
-    )
+    const data = {
+      ...form,
+      birthYear: form.birthYear ? Number(form.birthYear) : null,
+      deathYear: form.deathYear ? Number(form.deathYear) : null,
+    }
+    if (isEdit) {
+      onSubmit(data, { type: 'edit', anchorId: editPerson.id })
+    } else {
+      onSubmit(data, { type: relType, anchorId: anchor })
+    }
   }
 
   const anchorName = people.find((p) => p.id === anchor)?.name || ''
-  const submitLabel = anchorName
-    ? `${t('add.submit')} ${t('add.to')} ${anchorName.split(' ')[0]}`
-    : t('add.submit')
+  const submitLabel = isEdit
+    ? t('add.save')
+    : anchorName
+      ? `${t('add.submit')} ${t('add.to')} ${anchorName.split(' ')[0]}`
+      : t('add.submit')
 
   return (
     <div className="scrim" onClick={onClose}>
@@ -100,44 +119,46 @@ export function AddMemberSheet({ people, anchorId, anchorType, onClose, onSubmit
         <div className="sheet-grip" />
         <div className="sheet-head">
           <div>
-            <div className="eyebrow">{t('add.eyebrow')}</div>
-            <h2>{t('add.title')}</h2>
+            <div className="eyebrow">{isEdit ? t('add.edit_eyebrow') : t('add.eyebrow')}</div>
+            <h2>{isEdit ? t('add.edit_title') : t('add.title')}</h2>
           </div>
           <button className="close-btn" onClick={onClose} aria-label="Tutup">
             <IconClose />
           </button>
         </div>
 
-        {/* Relasi */}
-        <div className="field">
-          <label>{t('add.relation')}</label>
-          <div className="segmented" style={{ marginBottom: 10 }}>
-            <button
-              className={relType === 'child' ? 'active' : ''}
-              onClick={() => setRelType('child')}
+        {/* Relasi (hanya saat menambah anggota baru) */}
+        {!isEdit && (
+          <div className="field">
+            <label>{t('add.relation')}</label>
+            <div className="segmented" style={{ marginBottom: 10 }}>
+              <button
+                className={relType === 'child' ? 'active' : ''}
+                onClick={() => setRelType('child')}
+              >
+                {t('add.rel_child')}
+              </button>
+              <button
+                className={relType === 'spouse' ? 'active' : ''}
+                onClick={() => setRelType('spouse')}
+              >
+                {t('add.rel_spouse')}
+              </button>
+            </div>
+            <select
+              className="select"
+              value={anchor}
+              onChange={(e) => setAnchor(e.target.value)}
             >
-              {t('add.rel_child')}
-            </button>
-            <button
-              className={relType === 'spouse' ? 'active' : ''}
-              onClick={() => setRelType('spouse')}
-            >
-              {t('add.rel_spouse')}
-            </button>
+              {anchorOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.birthYear ? ` (${p.birthYear})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            className="select"
-            value={anchor}
-            onChange={(e) => setAnchor(e.target.value)}
-          >
-            {anchorOptions.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-                {p.birthYear ? ` (${p.birthYear})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+        )}
 
         {/* Foto + nama */}
         <div className="field">
@@ -263,7 +284,7 @@ export function AddMemberSheet({ people, anchorId, anchorType, onClose, onSubmit
             onClick={submit}
             whileTap={{ scale: 0.97 }}
           >
-            <IconUser />
+            {isEdit ? <IconEdit /> : <IconUser />}
             {submitLabel}
           </motion.button>
         </div>

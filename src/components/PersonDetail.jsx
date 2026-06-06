@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, Reorder } from 'framer-motion'
 import { initials, lifespan, placeLabel, genderClass } from '../lib/format.js'
 import { useI18n } from '../i18n/i18n.jsx'
 import {
@@ -8,6 +9,7 @@ import {
   IconTrash,
   IconHeart,
   IconPhone,
+  IconEdit,
 } from './icons.jsx'
 
 function RelChip({ person, index = 0, onClick }) {
@@ -27,8 +29,51 @@ function RelChip({ person, index = 0, onClick }) {
   )
 }
 
-export function PersonDetail({ person, people, byId, onClose, onSelect, onAddTo, onRemove }) {
+export function PersonDetail({
+  person,
+  people,
+  byId,
+  onClose,
+  onSelect,
+  onAddTo,
+  onEdit,
+  onRemove,
+  onReorderChildren,
+}) {
   const { t } = useI18n()
+
+  // Anak (lewat parentId atau sebagai ibu/parent2Id), terurut: urutan manual
+  // dulu, lalu tahun lahir, lalu nama.
+  const childList = useMemo(() => {
+    if (!person) return []
+    return people
+      .filter((p) => p.parentId === person.id || p.parent2Id === person.id)
+      .sort(
+        (a, b) =>
+          (a.order ?? 1e9) - (b.order ?? 1e9) ||
+          (a.birthYear || 9999) - (b.birthYear || 9999) ||
+          a.name.localeCompare(b.name),
+      )
+  }, [people, person])
+
+  // Urutan lokal untuk drag-and-drop; sinkron ulang bila daftar anak berubah
+  // (mis. ada penambahan/penghapusan), tapi tetap pertahankan hasil seret.
+  const [orderIds, setOrderIds] = useState(() => childList.map((c) => c.id))
+  useEffect(() => {
+    const ids = childList.map((c) => c.id)
+    setOrderIds((prev) => {
+      const sameSet =
+        prev.length === ids.length && prev.every((id) => ids.includes(id))
+      return sameSet ? prev : ids
+    })
+  }, [childList])
+
+  const draggedRef = useRef(false)
+  const handleReorder = (ids) => {
+    setOrderIds(ids)
+    onReorderChildren?.(ids)
+  }
+
   if (!person) return null
 
   const parent = person.parentId ? byId.get(person.parentId) : null
@@ -42,10 +87,6 @@ export function PersonDetail({ person, people, byId, onClose, onSelect, onAddTo,
     if (Array.isArray(p.spouseIds) && p.spouseIds.includes(person.id)) spouseIdSet.add(p.id)
   }
   const spouses = [...spouseIdSet].map((id) => byId.get(id)).filter(Boolean)
-  // Anak = lewat garis keturunan (parentId) ATAU sebagai ibu (parent2Id).
-  const children = people.filter(
-    (p) => p.parentId === person.id || p.parent2Id === person.id,
-  )
   const siblings = parent
     ? people.filter((p) => p.parentId === parent.id && p.id !== person.id)
     : []
@@ -133,16 +174,58 @@ export function PersonDetail({ person, people, byId, onClose, onSelect, onAddTo,
             </div>
           )}
 
-          {children.length > 0 && (
+          {orderIds.length > 0 && (
             <div className="rel-group">
               <div className="rel-label">
-                {t('detail.children')} ({children.length})
+                {t('detail.children')} ({orderIds.length})
+                {orderIds.length > 1 && (
+                  <span className="rel-hint">{t('detail.reorder_hint')}</span>
+                )}
               </div>
-              <div className="rel-chips">
-                {children.map((c, i) => (
-                  <RelChip key={c.id} person={c} index={i} onClick={onSelect} />
-                ))}
-              </div>
+              <Reorder.Group
+                as="div"
+                axis="y"
+                values={orderIds}
+                onReorder={handleReorder}
+                className="child-reorder"
+              >
+                {orderIds.map((cid) => {
+                  const c = byId.get(cid)
+                  if (!c) return null
+                  return (
+                    <Reorder.Item
+                      key={cid}
+                      value={cid}
+                      as="div"
+                      className="child-row"
+                      data-no-pan
+                      whileDrag={{ scale: 1.03, cursor: 'grabbing' }}
+                      onPointerDown={() => {
+                        draggedRef.current = false
+                      }}
+                      onDragStart={() => {
+                        draggedRef.current = true
+                      }}
+                      onClick={() => {
+                        if (!draggedRef.current) onSelect(cid)
+                      }}
+                    >
+                      <span className="child-grip" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" width="14" height="14">
+                          <circle cx="5" cy="3.5" r="1.3" fill="currentColor" />
+                          <circle cx="11" cy="3.5" r="1.3" fill="currentColor" />
+                          <circle cx="5" cy="8" r="1.3" fill="currentColor" />
+                          <circle cx="11" cy="8" r="1.3" fill="currentColor" />
+                          <circle cx="5" cy="12.5" r="1.3" fill="currentColor" />
+                          <circle cx="11" cy="12.5" r="1.3" fill="currentColor" />
+                        </svg>
+                      </span>
+                      <span className="dot">{initials(c.name)}</span>
+                      <span className="child-name">{c.name}</span>
+                    </Reorder.Item>
+                  )
+                })}
+              </Reorder.Group>
             </div>
           )}
 
@@ -173,18 +256,18 @@ export function PersonDetail({ person, people, byId, onClose, onSelect, onAddTo,
           )}
         </div>
 
-        {person.parentId && (
-          <div style={{ marginTop: 10 }}>
-            <button
-              className="btn btn-danger"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={() => onRemove(person.id)}
-            >
+        <div className="detail-actions" style={{ marginTop: 10 }}>
+          <button className="btn btn-ghost" onClick={() => onEdit(person)}>
+            <IconEdit />
+            {t('detail.edit')}
+          </button>
+          {person.parentId && (
+            <button className="btn btn-danger" onClick={() => onRemove(person.id)}>
               <IconTrash />
               {t('detail.remove')}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </motion.div>
     </div>
   )

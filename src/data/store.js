@@ -5,7 +5,7 @@
 
 import { SEED_PEOPLE } from './seed.js'
 
-const STORAGE_KEY = 'silsilah-maruhun:v19'
+const STORAGE_KEY = 'silsilah-maruhun:v26'
 const DIACRITICS = new RegExp('[\\u0300-\\u036f]', 'g')
 
 export function loadPeople() {

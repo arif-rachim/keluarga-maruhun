@@ -2,8 +2,9 @@
 // Tiap "unit" = orang utama + 0..n pasangan menempel. Anak dikelompokkan
 // per ibu (parent2Id): anak istri-1 di bawah istri-1, dst.
 
-export const NODE_W = 116
-export const NODE_H = 112
+// Node dibuat persegi (W = H) agar transpose vertikal<->horizontal presisi.
+export const NODE_W = 114
+export const NODE_H = 114
 export const H_GAP = 16 // jarak antar saudara (lebih rapat)
 export const V_GAP = 46 // jarak antar generasi
 export const SPOUSE_GAP = 100 // pasangan dirapatkan (lebih kecil dari NODE_W)
@@ -11,7 +12,8 @@ export const SPOUSE_GAP = 100 // pasangan dirapatkan (lebih kecil dari NODE_W)
 const SLOT = NODE_W + H_GAP
 const half = NODE_W / 2
 
-export function buildLayout(people, collapsed = new Set()) {
+// orientation: 'vertical' (atas->bawah, default) atau 'horizontal' (kiri->kanan).
+export function buildLayout(people, collapsed = new Set(), orientation = 'vertical') {
   const byId = new Map(people.map((p) => [p.id, p]))
   const indexOf = new Map(people.map((p, i) => [p.id, i]))
 
@@ -62,7 +64,14 @@ export function buildLayout(people, collapsed = new Set()) {
     }
   }
   for (const list of childrenOf.values()) {
-    list.sort((a, b) => (a.birthYear || 9999) - (b.birthYear || 9999) || a.name.localeCompare(b.name))
+    // Urutan manual (field `order`) diutamakan; bila tak ada, jatuh ke
+    // tahun lahir lalu nama.
+    list.sort(
+      (a, b) =>
+        (a.order ?? 1e9) - (b.order ?? 1e9) ||
+        (a.birthYear || 9999) - (b.birthYear || 9999) ||
+        a.name.localeCompare(b.name),
+    )
   }
 
   const roots = people.filter((p) => !p.parentId && !attached.has(p.id))
@@ -134,7 +143,8 @@ export function buildLayout(people, collapsed = new Set()) {
       node.x = leftX
       const coupleCenter = leftX + half + (hasSpouse ? SPOUSE_GAP / 2 : 0)
       node.connectX = coupleCenter
-      if (hasSpouse) node.spouses = [{ id: spouse.id, person: spouse, x: leftX + SPOUSE_GAP }]
+      if (hasSpouse)
+        node.spouses = [{ id: spouse.id, person: spouse, x: leftX + SPOUSE_GAP, y: node.y }]
       node.bonds = [{ centerX: coupleCenter, childIds: kids.map((k) => k.id) }]
     } else {
       // Pasangan ganda: kelompokkan anak per ibu (parent2Id).
@@ -153,7 +163,12 @@ export function buildLayout(people, collapsed = new Set()) {
 
       node.x = personCenter - half
       node.connectX = personCenter
-      node.spouses = spouses.map((s, i) => ({ id: s.id, person: s, x: wifeCenters[i] - half }))
+      node.spouses = spouses.map((s, i) => ({
+        id: s.id,
+        person: s,
+        x: wifeCenters[i] - half,
+        y: node.y,
+      }))
       node.bonds = spouses.map((s, i) => ({
         centerX: wifeCenters[i],
         childIds: (i === 0 ? g0 : rest[i - 1]).childIds,
@@ -197,26 +212,45 @@ export function buildLayout(people, collapsed = new Set()) {
     }
   }
 
-  // Bounds (termasuk kartu pasangan).
+  // Mode kiri->kanan: cukup tukar sumbu (x<->y) karena node persegi.
+  const horizontal = orientation === 'horizontal'
+  if (horizontal) {
+    for (const n of nodes) {
+      ;[n.x, n.y] = [n.y, n.x]
+      for (const sp of n.spouses) [sp.x, sp.y] = [sp.y, sp.x]
+    }
+    for (const e of edges) {
+      ;[e.from.x, e.from.y] = [e.from.y, e.from.x]
+      ;[e.to.x, e.to.y] = [e.to.y, e.to.x]
+    }
+  }
+
+  // Bounds (termasuk kartu pasangan) — dihitung dari posisi final.
   let minX = Infinity
+  let minY = Infinity
   let maxX = -Infinity
-  let maxY = 0
+  let maxY = -Infinity
   for (const n of nodes) {
-    const xs = [n.x, ...n.spouses.map((s) => s.x)]
-    minX = Math.min(minX, ...xs)
-    maxX = Math.max(maxX, ...xs.map((x) => x + NODE_W))
-    maxY = Math.max(maxY, n.y + NODE_H)
+    for (const c of [n, ...n.spouses]) {
+      minX = Math.min(minX, c.x)
+      minY = Math.min(minY, c.y)
+      maxX = Math.max(maxX, c.x + NODE_W)
+      maxY = Math.max(maxY, c.y + NODE_H)
+    }
   }
   if (!isFinite(minX)) {
     minX = 0
+    minY = 0
     maxX = NODE_W
+    maxY = NODE_H
   }
+  const PAD = 24
   const bounds = {
-    minX: minX - H_GAP,
-    minY: -V_GAP / 2,
-    width: maxX - minX + H_GAP * 2,
-    height: maxY + V_GAP,
+    minX: minX - PAD,
+    minY: minY - PAD,
+    width: maxX - minX + PAD * 2,
+    height: maxY - minY + PAD * 2,
   }
 
-  return { nodes, edges, bounds, nodeById }
+  return { nodes, edges, bounds, nodeById, horizontal }
 }

@@ -1,83 +1,13 @@
-// Terjemahan tiga bahasa: Indonesia (id), Baso Minang (min), English (en).
+// Terjemahan dua bahasa: Baso Minang (min) & English (en).
 // "Ranji" adalah kata Minang untuk silsilah/pohon keluarga.
 // "Padusi" = perempuan, "Dunsanak" = saudara/kerabat, "Niniak" = tetua.
 
 export const LANGUAGES = [
-  { code: 'id', label: 'Bahasa Indonesia', short: 'ID' },
   { code: 'min', label: 'Baso Minang', short: 'MIN' },
   { code: 'en', label: 'English', short: 'EN' },
 ]
 
 export const translations = {
-  id: {
-    'brand.subtitle': 'Silsilah Keluarga',
-    'action.register': 'Daftarkan Keluarga',
-    'action.reset': 'Reset data',
-    'reset.confirm': 'Reset semua data ke data asli? Perubahan yang Anda tambahkan di perangkat ini akan hilang.',
-
-    'intro.eyebrow': 'Silsilah Keluarga',
-    'intro.title_pre': 'Datuk',
-    'intro.tagline':
-      'Satu pohon, ribuan ranting. Menyambung kembali tali persaudaraan keturunan Datuk Maruhun — di mana pun kita berada di belahan dunia.',
-    'intro.members': 'Anggota',
-    'intro.countries': 'Negara',
-    'intro.living': 'Masih Hidup',
-    'intro.enter': 'Masuk ke Pohon Keluarga',
-
-    'ai.badge': 'Foto direstorasi menggunakan AI',
-    'ai.original': 'Foto Asli',
-    'ai.restored': 'Dipulihkan dengan AI',
-    'ai.colored': 'Diwarnai dengan AI',
-
-    'stage.hint': 'Cubit untuk zoom · seret untuk menjelajah',
-    'card.elder': 'Tetua',
-    'tree.expand_all': 'Buka semua',
-    'tree.collapse_all': 'Tutup semua',
-
-    'search.placeholder': 'Cari nama atau kota…',
-    'search.empty': 'Tidak ada yang cocok.',
-
-    'detail.parents': 'Orang Tua',
-    'detail.spouse': 'Pasangan',
-    'detail.children': 'Anak',
-    'detail.siblings': 'Saudara',
-    'detail.add_child': 'Tambah Anak',
-    'detail.add_spouse': 'Tambah Pasangan',
-    'detail.remove': 'Hapus dari pohon',
-
-    'add.eyebrow': 'Daftarkan Keluarga',
-    'add.title': 'Anggota Baru',
-    'add.relation': 'Hubungan dengan keluarga',
-    'add.rel_child': 'Anak dari…',
-    'add.rel_spouse': 'Pasangan dari…',
-    'add.photo_name': 'Foto & Nama',
-    'add.name_ph': 'Nama lengkap',
-    'add.gender': 'Jenis Kelamin',
-    'add.male': 'Laki-laki',
-    'add.female': 'Perempuan',
-    'add.years': 'Tahun Lahir & Wafat',
-    'add.birth_ph': 'Lahir (mis. 1980)',
-    'add.death_ph': 'Wafat (kosongkan bila hidup)',
-    'add.domicile': 'Domisili Saat Ini',
-    'add.city_ph': 'Kota',
-    'add.country_ph': 'Negara',
-    'add.phone': 'Nomor WhatsApp',
-    'add.phone_ph': 'mis. +62 812-3456-7890',
-    'add.story': 'Cerita Singkat',
-    'add.story_ph': 'Kenangan, profesi, atau cerita singkat…',
-    'add.cancel': 'Batal',
-    'add.submit': 'Tambahkan',
-    'add.to': 'ke',
-    'add.err_name': 'Nama wajib diisi.',
-    'add.err_anchor': 'Pilih anggota keluarga yang menjadi penghubung.',
-    'add.err_photo': 'Gagal memuat foto. Coba gambar lain.',
-
-    'toast.added': '{name} ditambahkan ke pohon keluarga',
-    'toast.removed': '{name} dihapus',
-    'confirm.remove':
-      'Hapus {name} dari pohon keluarga? Anak-anaknya akan kehilangan penghubung ke orang ini.',
-  },
-
   min: {
     'brand.subtitle': 'Ranji Kaluargo',
     'action.register': 'Daftakan Dunsanak',
@@ -109,13 +39,18 @@ export const translations = {
     'detail.parents': 'Urang Tuo',
     'detail.spouse': 'Jodoh',
     'detail.children': 'Anak',
+    'detail.reorder_hint': '· serek untuak ma-atur urutan',
     'detail.siblings': 'Dunsanak',
     'detail.add_child': 'Tambah Anak',
     'detail.add_spouse': 'Tambah Jodoh',
+    'detail.edit': 'Ubah Data',
     'detail.remove': 'Hapuih dari ranji',
 
     'add.eyebrow': 'Daftakan Dunsanak',
     'add.title': 'Anggota Baru',
+    'add.edit_eyebrow': 'Ubah Data',
+    'add.edit_title': 'Ubah Anggota',
+    'add.save': 'Simpan',
     'add.relation': 'Hubuangan jo kaluargo',
     'add.rel_child': 'Anak dari…',
     'add.rel_spouse': 'Jodoh dari…',
@@ -142,6 +77,7 @@ export const translations = {
     'add.err_photo': 'Gaga mamuek foto. Cubo gambar lain.',
 
     'toast.added': '{name} ditambahan ka ranji kaluargo',
+    'toast.updated': 'Data {name} alah diubah',
     'toast.removed': '{name} dihapuih',
     'confirm.remove':
       'Hapuih {name} dari ranji kaluargo? Anak-anaknyo ka kahilangan panyambuang ka urang ko.',
@@ -178,13 +114,18 @@ export const translations = {
     'detail.parents': 'Parents',
     'detail.spouse': 'Spouse',
     'detail.children': 'Children',
+    'detail.reorder_hint': '· drag to reorder',
     'detail.siblings': 'Siblings',
     'detail.add_child': 'Add Child',
     'detail.add_spouse': 'Add Spouse',
+    'detail.edit': 'Edit Details',
     'detail.remove': 'Remove from tree',
 
     'add.eyebrow': 'Register Family',
     'add.title': 'New Member',
+    'add.edit_eyebrow': 'Edit Details',
+    'add.edit_title': 'Edit Member',
+    'add.save': 'Save',
     'add.relation': 'Relationship to the family',
     'add.rel_child': 'Child of…',
     'add.rel_spouse': 'Spouse of…',
@@ -211,6 +152,7 @@ export const translations = {
     'add.err_photo': 'Failed to load photo. Try another image.',
 
     'toast.added': '{name} added to the family tree',
+    'toast.updated': '{name} updated',
     'toast.removed': '{name} removed',
     'confirm.remove':
       "Remove {name} from the family tree? Their children will lose their connection to this person.",

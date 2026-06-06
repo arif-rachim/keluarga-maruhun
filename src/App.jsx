@@ -9,17 +9,23 @@ import { SearchBar } from './components/SearchBar.jsx'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
 import { IconPlus, IconCheck, IconRefresh, RumahGadangRoof } from './components/icons.jsx'
 import { useI18n } from './i18n/i18n.jsx'
+import { useTreeOrientation } from './hooks/useOrientation.js'
 
 export default function App() {
   const { t } = useI18n()
-  const { people, byId, stats, addPerson, removePerson, reset } = useFamily()
+  const orientation = useTreeOrientation()
+  const { people, byId, stats, addPerson, updatePerson, removePerson, reorderChildren, reset } =
+    useFamily()
   const [showIntro, setShowIntro] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
+  const [highlightId, setHighlightId] = useState(null)
   const [addOpen, setAddOpen] = useState(false)
   const [addAnchor, setAddAnchor] = useState(null) // { type, anchorId }
+  const [editTarget, setEditTarget] = useState(null) // person yang sedang diubah
   const [toast, setToast] = useState('')
   const treeRef = useRef(null)
   const toastTimer = useRef(null)
+  const highlightTimer = useRef(null)
 
   // Semua orang yang punya keturunan, kecuali akar (tetua).
   const collapsibleIds = useMemo(() => {
@@ -69,27 +75,89 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(''), 2600)
   }, [])
 
-  useEffect(() => () => clearTimeout(toastTimer.current), [])
+  useEffect(
+    () => () => {
+      clearTimeout(toastTimer.current)
+      clearTimeout(highlightTimer.current)
+    },
+    [],
+  )
 
   const handleSelect = useCallback((id) => {
     setSelectedId(id)
   }, [])
 
-  const handlePickFromSearch = useCallback((id) => {
-    treeRef.current?.focusPerson(id)
-    setTimeout(() => setSelectedId(id), 400)
-  }, [])
+  // Dari hasil pencarian: buka leluhurnya, tengahkan node-nya, dan sorot
+  // sebentar — tanpa membuka panel detail.
+  const handlePickFromSearch = useCallback(
+    (id) => {
+      // Titik awal penelusuran: bila pasangan yang menikah masuk (tanpa
+      // induk), pakai pasangannya yang sedarah agar node-nya pasti tampak.
+      let cur = byId.get(id)
+      if (cur && !cur.parentId && cur.spouseId && byId.has(cur.spouseId)) {
+        cur = byId.get(cur.spouseId)
+      }
+      // Kumpulkan seluruh leluhur yang harus dibuka.
+      const toOpen = []
+      let p = cur?.parentId ? byId.get(cur.parentId) : null
+      while (p) {
+        toOpen.push(p.id)
+        p = p.parentId ? byId.get(p.parentId) : null
+      }
+      if (toOpen.length) {
+        setCollapsed((prev) => {
+          const next = new Set(prev)
+          for (const aid of toOpen) next.delete(aid)
+          return next
+        })
+      }
+
+      // Jangan buka panel detail; cukup tengahkan + sorot node-nya.
+      setSelectedId(null)
+      setHighlightId(id)
+      clearTimeout(highlightTimer.current)
+      highlightTimer.current = setTimeout(() => setHighlightId(null), 2600)
+      // Beri waktu layout diperbarui (bila ada leluhur yang baru dibuka).
+      setTimeout(() => treeRef.current?.focusPerson(id), toOpen.length ? 240 : 60)
+    },
+    [byId],
+  )
 
   const openAdd = useCallback((type = 'child', anchorId = null) => {
+    setEditTarget(null)
     setAddAnchor(anchorId ? { type, anchorId } : null)
     setAddOpen(true)
   }, [])
 
+  const openEdit = useCallback((person) => {
+    setSelectedId(null)
+    setAddAnchor(null)
+    setEditTarget(person)
+    setAddOpen(true)
+  }, [])
+
+  const closeSheet = useCallback(() => {
+    setAddOpen(false)
+    setEditTarget(null)
+  }, [])
+
   const handleAddSubmit = useCallback(
     (data, relation) => {
+      // Mode ubah: perbarui data orang yang sudah ada.
+      if (relation?.type === 'edit') {
+        const id = relation.anchorId
+        updatePerson(id, data)
+        setAddOpen(false)
+        setEditTarget(null)
+        flashToast(t('toast.updated', { name: data.name || '—' }))
+        setTimeout(() => treeRef.current?.focusPerson(id), 120)
+        return
+      }
+
       const id = addPerson(data, relation)
       setAddOpen(false)
       setSelectedId(null)
+      setEditTarget(null)
       // Pastikan induknya terbuka agar anggota baru langsung terlihat.
       if (relation?.anchorId) {
         setCollapsed((prev) => {
@@ -102,7 +170,7 @@ export default function App() {
       // Beri waktu layout diperbarui, lalu fokuskan.
       setTimeout(() => treeRef.current?.focusPerson(id), 250)
     },
-    [addPerson, flashToast, t],
+    [addPerson, updatePerson, flashToast, t],
   )
 
   const handleRemove = useCallback(
@@ -170,7 +238,9 @@ export default function App() {
           ref={treeRef}
           people={people}
           collapsed={collapsed}
+          orientation={orientation}
           selectedId={selectedId}
+          highlightId={highlightId}
           onSelect={handleSelect}
           onToggle={toggleCollapse}
           onExpandAll={expandAll}
@@ -194,7 +264,9 @@ export default function App() {
               setSelectedId(null)
               openAdd(type, anchorId)
             }}
+            onEdit={openEdit}
             onRemove={handleRemove}
+            onReorderChildren={reorderChildren}
           />
         )}
       </AnimatePresence>
@@ -206,7 +278,8 @@ export default function App() {
             people={people}
             anchorId={addAnchor?.anchorId}
             anchorType={addAnchor?.type}
-            onClose={() => setAddOpen(false)}
+            editPerson={editTarget}
+            onClose={closeSheet}
             onSubmit={handleAddSubmit}
           />
         )}

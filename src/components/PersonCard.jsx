@@ -13,6 +13,7 @@ function PersonCardBase({
   index = 0,
   isRoot,
   isSelected,
+  isHighlighted,
   hasChildren,
   collapsed,
   childCount,
@@ -34,7 +35,7 @@ function PersonCardBase({
     >
       <motion.button
         data-no-pan
-        className={`node-tap${isSelected ? ' is-selected' : ''}${isRoot ? ' is-root' : ''}`}
+        className={`node-tap${isSelected ? ' is-selected' : ''}${isHighlighted ? ' is-highlight' : ''}${isRoot ? ' is-root' : ''}`}
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.96 }}
         onClick={(e) => {

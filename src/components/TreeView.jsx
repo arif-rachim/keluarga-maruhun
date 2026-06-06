@@ -18,15 +18,19 @@ import {
   IconFold,
 } from './icons.jsx'
 
-// Bangun garis penghubung orang tua -> anak sebagai kurva halus.
-function edgePath(e) {
+// Garis penghubung orang tua -> anak (kurva halus), mengikuti arah pohon.
+function edgePath(e, horizontal) {
   const { from, to } = e
+  if (horizontal) {
+    const midX = (from.x + to.x) / 2
+    return `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`
+  }
   const midY = (from.y + to.y) / 2
   return `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`
 }
 
 export const TreeView = forwardRef(function TreeView(
-  { people, collapsed, selectedId, onSelect, onToggle, onExpandAll, onCollapseAll },
+  { people, collapsed, orientation, selectedId, highlightId, onSelect, onToggle, onExpandAll, onCollapseAll },
   ref,
 ) {
   const { t } = useI18n()
@@ -34,7 +38,11 @@ export const TreeView = forwardRef(function TreeView(
   const { transform, dragging, fitToBounds, focusOn, centerOn, zoomBy } =
     usePanZoom(stageRef)
 
-  const layout = useMemo(() => buildLayout(people, collapsed), [people, collapsed])
+  const layout = useMemo(
+    () => buildLayout(people, collapsed, orientation),
+    [people, collapsed, orientation],
+  )
+  const horizontal = layout.horizontal
   const didInit = useRef(false)
   const indexById = useMemo(() => {
     const m = new Map()
@@ -42,7 +50,10 @@ export const TreeView = forwardRef(function TreeView(
     return m
   }, [layout])
 
-  // Tampilan awal: berpusat pada sang tetua (akar) di bagian atas, skala terbaca.
+  // Tampilan awal & saat orientasi berubah: berpusat pada sang tetua (akar).
+  useEffect(() => {
+    didInit.current = false // re-center bila orientasi berganti
+  }, [orientation])
   useEffect(() => {
     if (didInit.current) return
     if (layout.nodes.length === 0) return
@@ -50,24 +61,24 @@ export const TreeView = forwardRef(function TreeView(
       const root =
         layout.nodes.find((n) => n.depth === 0 && !n.person.parentId) ||
         layout.nodes[0]
-      const fitScale = Math.min(
-        (stageRef.current?.clientWidth - 120) / layout.bounds.width || 1,
-        1.1,
-      )
+      const el = stageRef.current
+      const fitW = ((el?.clientWidth || 360) - 120) / layout.bounds.width
+      const fitH = ((el?.clientHeight || 640) - 160) / layout.bounds.height
+      const fitScale = Math.min(fitW, fitH)
       if (fitScale >= 0.55) {
         fitToBounds(layout.bounds, { animate: false, pad: 60, top: 80 })
       } else {
         centerOn(
-          { x: root.connectX, y: root.y + NODE_H / 2 },
+          { x: root.x + NODE_W / 2, y: root.y + NODE_H / 2 },
           0.72,
-          0.24,
+          horizontal ? 0.5 : 0.24,
           false,
         )
       }
       didInit.current = true
     })
     return () => cancelAnimationFrame(id)
-  }, [layout, fitToBounds, centerOn])
+  }, [layout, fitToBounds, centerOn, horizontal])
 
   useImperativeHandle(ref, () => ({
     focusPerson(id) {
@@ -93,9 +104,9 @@ export const TreeView = forwardRef(function TreeView(
       if (!node) return
       const s = Math.min(Math.max(transform.scale, 0.42), 0.72)
       centerOn(
-        { x: node.connectX, y: node.y + NODE_H / 2 },
+        { x: node.x + NODE_W / 2, y: node.y + NODE_H / 2 },
         s,
-        0.26,
+        horizontal ? 0.5 : 0.26,
         true,
       )
     },
@@ -106,7 +117,7 @@ export const TreeView = forwardRef(function TreeView(
   return (
     <div ref={stageRef} className={`stage${dragging ? ' dragging' : ''}`}>
       <div
-        className="stage-canvas"
+        className={`stage-canvas${horizontal ? ' is-horizontal' : ''}`}
         style={{
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
         }}
@@ -121,7 +132,7 @@ export const TreeView = forwardRef(function TreeView(
             <motion.path
               key={e.id}
               className="edge-path"
-              d={edgePath(e)}
+              d={edgePath(e, horizontal)}
               initial={{ pathLength: 0, opacity: 0 }}
               animate={{ pathLength: 1, opacity: 1 }}
               transition={{ duration: 0.7, delay: Math.min(i * 0.03, 0.4), ease: 'easeInOut' }}
@@ -129,21 +140,36 @@ export const TreeView = forwardRef(function TreeView(
           ))}
         </svg>
 
-        {/* Tautan hati di antara dua bubble pasangan */}
+        {/* Tautan hati di antara dua bubble pasangan (horizontal/vertikal) */}
         {layout.nodes.flatMap((n) =>
           n.spouses.map((sp) => {
-            const c1 = n.x + NODE_W / 2 // pusat avatar orang utama
-            const c2 = sp.x + NODE_W / 2 // pusat avatar pasangan
-            const lo = Math.min(c1, c2)
-            const hi = Math.max(c1, c2)
             const AVR = 26 // radius avatar
+            const AVC = 30 // jarak pusat avatar dari atas kartu
+            const ax = n.x + NODE_W / 2
+            const ay = n.y + AVC
+            const bx = sp.x + NODE_W / 2
+            const by = sp.y + AVC
+            const vertical = Math.abs(by - ay) > Math.abs(bx - ax)
+            const style = vertical
+              ? {
+                  left: ax - 1,
+                  top: Math.min(ay, by) + AVR,
+                  width: 2,
+                  height: Math.max(10, Math.abs(by - ay) - 2 * AVR),
+                }
+              : {
+                  left: Math.min(ax, bx) + AVR,
+                  top: ay - 1,
+                  height: 2,
+                  width: Math.max(10, Math.abs(bx - ax) - 2 * AVR),
+                }
             return (
               <motion.div
                 key={`sp-${n.id}-${sp.id}`}
-                className="spouse-link"
-                style={{ left: lo + AVR, top: n.y + 28, width: Math.max(10, hi - lo - 2 * AVR) }}
-                initial={{ scaleX: 0, opacity: 0 }}
-                animate={{ scaleX: 1, opacity: 1 }}
+                className={`spouse-link${vertical ? ' vertical' : ''}`}
+                style={style}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
               />
             )
@@ -160,6 +186,7 @@ export const TreeView = forwardRef(function TreeView(
             index={indexById.get(n.id) || 0}
             isRoot={n.depth === 0 && !n.person.parentId}
             isSelected={selectedId === n.person.id}
+            isHighlighted={highlightId === n.person.id}
             hasChildren={n.hasChildren}
             collapsed={n.collapsed}
             childCount={n.childCount}
@@ -175,10 +202,11 @@ export const TreeView = forwardRef(function TreeView(
               key={`spouse-card-${n.id}-${sp.id}`}
               person={sp.person}
               x={sp.x}
-              y={n.y}
+              y={sp.y}
               index={indexById.get(n.id) || 0}
               isRoot={false}
               isSelected={selectedId === sp.person.id}
+              isHighlighted={highlightId === sp.person.id}
               hasChildren={false}
               collapsed={false}
               childCount={0}

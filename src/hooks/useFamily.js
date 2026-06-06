@@ -58,6 +58,15 @@ export function useFamily() {
     setPeople((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)))
   }, [])
 
+  // Simpan urutan baru sekelompok anak. `orderedIds` = daftar id sesuai
+  // urutan yang diinginkan; tiap anak diberi field `order` = posisinya.
+  const reorderChildren = useCallback((orderedIds) => {
+    const rank = new Map(orderedIds.map((id, i) => [id, i]))
+    setPeople((prev) =>
+      prev.map((p) => (rank.has(p.id) ? { ...p, order: rank.get(p.id) } : p)),
+    )
+  }, [])
+
   const removePerson = useCallback((id) => {
     setPeople((prev) => {
       return prev
@@ -100,6 +109,7 @@ export function useFamily() {
     addPerson,
     updatePerson,
     removePerson,
+    reorderChildren,
     reset,
   }
 }
