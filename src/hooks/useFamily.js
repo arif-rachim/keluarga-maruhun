@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { loadPeople, savePeople, resetPeople, generateId } from '../data/store.js'
+import { useManggalehSync } from './useManggalehSync.js'
 
 // Hook pusat: mengelola seluruh data anggota keluarga + aksi mutasinya.
 export function useFamily() {
   const [people, setPeople] = useState(() => loadPeople())
+
+  // Sinkronisasi cloud opsional (offline-first). Tanpa env Manggaleh, hook ini
+  // tidak melakukan apa-apa dan aplikasi tetap berbasis localStorage.
+  useManggalehSync(people, setPeople)
 
   useEffect(() => {
     savePeople(people)
