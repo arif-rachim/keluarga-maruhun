@@ -1272,6 +1272,17 @@ textarea {
   z-index: 14;
   width: min(420px, calc(100% - 32px));
 }
+/* Di HP (tampilan folder), search ikut alur — tak menimpa panel lain. */
+@media (max-width: 768px) {
+  .search-wrap {
+    position: relative;
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    padding: 10px 14px 2px;
+  }
+}
 .search-box {
   display: flex;
   align-items: center;

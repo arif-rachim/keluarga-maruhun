@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { useFamily } from './hooks/useFamily.js'
 import { useRequests } from './hooks/useRequests.js'
 import { TreeView } from './components/TreeView.jsx'
@@ -331,6 +331,7 @@ export default function App() {
   )
 
   return (
+    <MotionConfig reducedMotion={isMobile ? 'always' : 'never'}>
     <div className="app-shell">
       <AnimatePresence>
         {showIntro && <Intro stats={stats} onEnter={() => setShowIntro(false)} />}
@@ -483,5 +484,6 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+    </MotionConfig>
   )
 }
