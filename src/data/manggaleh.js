@@ -195,21 +195,60 @@ function fromRow(r) {
 }
 
 // ---------------------------------------------------------------------------
-// Cache id: code (id aplikasi) -> id internal Manggaleh.
-// Diperlukan karena update/remove memakai id internal Manggaleh.
+// Sesi pengguna + gerbang tulis (whitelist).
+//
+// Tulisan TIDAK langsung ke koleksi; semuanya lewat server-side function
+// `mutatePeople` yang MEMERIKSA ULANG nomor telepon pemanggil terhadap koleksi
+// `whitelist`. Nomor pengguna yang sedang masuk disimpan lokal dan disertakan
+// pada tiap mutasi. (Catatan keamanan: publishable key tetap bisa menulis
+// langsung ke koleksi terbuka, jadi ini gerbang tingkat-aplikasi yang tahan
+// utak-atik state browser, bukan anti-bypass mutlak — lihat
+// docs/MANGGALEH_WHITELIST.md.)
 // ---------------------------------------------------------------------------
-const idCache = new Map()
+const SESSION_KEY = 'manggaleh.session' // { name, phone }
 
-async function resolveId(code) {
-  if (idCache.has(code)) return idCache.get(code)
-  const rows = await (await coll()).list({ filters: { code: `eq.${code}` }, limit: 1 })
-  const mgId = rows?.[0]?.id ?? null
-  if (mgId) idCache.set(code, mgId)
-  return mgId
+export function canonPhone(p) {
+  let d = String(p ?? '').replace(/[^0-9]/g, '')
+  if (d.startsWith('0')) d = '62' + d.slice(1)
+  return d
+}
+
+export function loadSession() {
+  try {
+    return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+  } catch {
+    return null
+  }
+}
+export function saveSession(s) {
+  try {
+    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s))
+    else localStorage.removeItem(SESSION_KEY)
+  } catch {
+    /* abaikan */
+  }
+}
+
+// Tanya server apakah nomor ada di whitelist. -> { approved, name }
+export async function checkAccess(phone) {
+  const client = await ensureSession()
+  const res = await client.functions.invoke('checkAccess', { phone: canonPhone(phone) })
+  return res || { approved: false, name: null }
+}
+
+// Jalankan satu mutasi lewat function bergerbang. Melempar bila ditolak server.
+async function mutate(payload) {
+  const phone = loadSession()?.phone
+  const client = await ensureSession()
+  const res = await client.functions.invoke('mutatePeople', { ...payload, phone })
+  if (!res || res.ok !== true) {
+    throw new Error('Manggaleh: mutasi ditolak (' + (res?.error || 'unknown') + ')')
+  }
+  return res
 }
 
 // ---------------------------------------------------------------------------
-// Operasi data (semua async).
+// Operasi data.  BACA langsung (publishable + end-user); TULIS lewat gerbang.
 // ---------------------------------------------------------------------------
 export async function listPeople() {
   // `list()` membatasi default 50 / maks 200 baris per panggilan. Karena
@@ -222,48 +261,33 @@ export async function listPeople() {
     rows.push(...data)
     cursor = nextCursor ?? undefined
   } while (cursor)
-
-  idCache.clear()
-  for (const r of rows) if (r.code) idCache.set(r.code, r.id)
   return rows.map(fromRow)
 }
 
-// Sisipkan BANYAK anggota sekaligus (dipakai saat seed proyek kosong).
-// Memakai transaksi `client.tx` agar puluhan/ratusan baris masuk dalam sedikit
-// request — server membatasi ~120 request/menit, jadi menyisipkan satu per satu
-// akan kena 429. Dipecah per-batch (ACID per batch).
+// Seed proyek kosong (jalur dev: VITE_MANGGALEH_SEED) — aksi admin satu kali,
+// memakai tx langsung (bukan lewat gerbang). Server membatasi ~120 request/menit
+// & maks 50 operasi/transaksi, jadi dipecah per-batch.
 const TX_BATCH = 50
 export async function insertManyPeople(people) {
   const client = await ensureSession()
   for (let i = 0; i < people.length; i += TX_BATCH) {
-    const slice = people.slice(i, i + TX_BATCH)
-    const ops = slice.map((p) => ({ op: 'insert', collection: COLLECTION, values: toRow(p) }))
-    const results = await client.tx(ops)
-    for (const r of results) {
-      const row = r?.data
-      if (row?.code && row?.id) idCache.set(row.code, row.id)
-    }
+    const ops = people
+      .slice(i, i + TX_BATCH)
+      .map((p) => ({ op: 'insert', collection: COLLECTION, values: toRow(p) }))
+    await client.tx(ops)
   }
 }
 
 export async function insertPerson(person) {
-  const row = await (await coll()).insert(toRow(person))
-  if (row?.code && row?.id) idCache.set(row.code, row.id)
-  return row
+  return mutate({ op: 'insert', values: toRow(person) })
 }
 
-// Patch memakai objek person lengkap (kita kirim seluruh kolom hasil toRow).
 export async function patchPerson(code, person) {
-  const id = await resolveId(code)
-  if (!id) throw new Error(`Manggaleh: baris tak ditemukan untuk code "${code}"`)
-  return (await coll()).update(id, toRow(person))
+  return mutate({ op: 'update', code, patch: toRow(person) })
 }
 
 export async function deletePerson(code) {
-  const id = await resolveId(code)
-  if (!id) return
-  idCache.delete(code)
-  return (await coll()).remove(id)
+  return mutate({ op: 'remove', code })
 }
 
 // Berlangganan perubahan koleksi. Karena event realtime hanya membawa op+id

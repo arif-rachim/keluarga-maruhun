@@ -1385,3 +1385,32 @@ textarea {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ── Masuk (gerbang whitelist) ───────────────────────────────────────────── */
+.btn-auth {
+  gap: 7px;
+}
+.auth-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5ec27a;
+  box-shadow: 0 0 0 3px rgba(94, 194, 122, 0.18);
+  flex: 0 0 auto;
+}
+.auth-note {
+  margin: 2px 2px 14px;
+  color: var(--text-dim);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.auth-error {
+  margin: 2px 2px 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(214, 109, 92, 0.4);
+  background: rgba(214, 109, 92, 0.1);
+  color: #e6a99c;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}

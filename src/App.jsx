@@ -7,16 +7,20 @@ import { AddMemberSheet } from './components/AddMemberSheet.jsx'
 import { PersonDetail } from './components/PersonDetail.jsx'
 import { SearchBar } from './components/SearchBar.jsx'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
-import { IconPlus, IconCheck, IconRefresh, RumahGadangRoof } from './components/icons.jsx'
+import { LoginSheet } from './components/LoginSheet.jsx'
+import { IconPlus, IconCheck, IconRefresh, IconPhone, RumahGadangRoof } from './components/icons.jsx'
 import { useI18n } from './i18n/i18n.jsx'
+import { useAccess } from './access/useAccess.jsx'
 import { useTreeOrientation } from './hooks/useOrientation.js'
 
 export default function App() {
   const { t } = useI18n()
   const orientation = useTreeOrientation()
+  const { enabled: authEnabled, canEdit, session, signOut } = useAccess()
   const { people, byId, stats, addPerson, updatePerson, removePerson, reorderChildren, reset } =
     useFamily()
   const [showIntro, setShowIntro] = useState(true)
+  const [loginOpen, setLoginOpen] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
   const [highlightId, setHighlightId] = useState(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -214,8 +218,27 @@ export default function App() {
           >
             <IconRefresh />
           </button>
+          {authEnabled &&
+            (session ? (
+              <button
+                className="btn btn-ghost btn-auth"
+                onClick={signOut}
+                title={t('auth.signout')}
+              >
+                <span className="auth-dot" aria-hidden="true" />
+                <span className="btn-label">{t('auth.hello', { name: session.name })}</span>
+              </button>
+            ) : (
+              <button className="btn btn-ghost btn-auth" onClick={() => setLoginOpen(true)}>
+                <IconPhone />
+                <span className="btn-label">{t('auth.signin')}</span>
+              </button>
+            ))}
           <LanguageSwitcher />
-          <button className="btn btn-primary" onClick={() => openAdd()}>
+          <button
+            className="btn btn-primary"
+            onClick={() => (canEdit ? openAdd() : setLoginOpen(true))}
+          >
             <IconPlus />
             <span className="btn-label">{t('action.register')}</span>
           </button>
@@ -267,6 +290,7 @@ export default function App() {
             onEdit={openEdit}
             onRemove={handleRemove}
             onReorderChildren={reorderChildren}
+            canEdit={canEdit}
           />
         )}
       </AnimatePresence>
@@ -283,6 +307,11 @@ export default function App() {
             onSubmit={handleAddSubmit}
           />
         )}
+      </AnimatePresence>
+
+      {/* Masuk (whitelist) */}
+      <AnimatePresence>
+        {loginOpen && <LoginSheet onClose={() => setLoginOpen(false)} />}
       </AnimatePresence>
 
       {/* Toast */}

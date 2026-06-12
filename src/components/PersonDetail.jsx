@@ -39,6 +39,7 @@ export function PersonDetail({
   onEdit,
   onRemove,
   onReorderChildren,
+  canEdit = true,
 }) {
   const { t } = useI18n()
 
@@ -178,10 +179,19 @@ export function PersonDetail({
             <div className="rel-group">
               <div className="rel-label">
                 {t('detail.children')} ({orderIds.length})
-                {orderIds.length > 1 && (
+                {canEdit && orderIds.length > 1 && (
                   <span className="rel-hint">{t('detail.reorder_hint')}</span>
                 )}
               </div>
+              {!canEdit ? (
+                <div className="rel-chips">
+                  {orderIds.map((cid, i) => {
+                    const c = byId.get(cid)
+                    if (!c) return null
+                    return <RelChip key={cid} person={c} index={i} onClick={onSelect} />
+                  })}
+                </div>
+              ) : (
               <Reorder.Group
                 as="div"
                 axis="y"
@@ -226,6 +236,7 @@ export function PersonDetail({
                   )
                 })}
               </Reorder.Group>
+              )}
             </div>
           )}
 
@@ -243,31 +254,35 @@ export function PersonDetail({
           )}
         </div>
 
-        <div className="detail-actions">
-          <button className="btn btn-ghost" onClick={() => onAddTo('child', person.id)}>
-            <IconPlusSm />
-            {t('detail.add_child')}
-          </button>
-          {spouses.length === 0 && (
-            <button className="btn btn-ghost" onClick={() => onAddTo('spouse', person.id)}>
-              <IconHeart />
-              {t('detail.add_spouse')}
-            </button>
-          )}
-        </div>
+        {canEdit && (
+          <>
+            <div className="detail-actions">
+              <button className="btn btn-ghost" onClick={() => onAddTo('child', person.id)}>
+                <IconPlusSm />
+                {t('detail.add_child')}
+              </button>
+              {spouses.length === 0 && (
+                <button className="btn btn-ghost" onClick={() => onAddTo('spouse', person.id)}>
+                  <IconHeart />
+                  {t('detail.add_spouse')}
+                </button>
+              )}
+            </div>
 
-        <div className="detail-actions" style={{ marginTop: 10 }}>
-          <button className="btn btn-ghost" onClick={() => onEdit(person)}>
-            <IconEdit />
-            {t('detail.edit')}
-          </button>
-          {person.parentId && (
-            <button className="btn btn-danger" onClick={() => onRemove(person.id)}>
-              <IconTrash />
-              {t('detail.remove')}
-            </button>
-          )}
-        </div>
+            <div className="detail-actions" style={{ marginTop: 10 }}>
+              <button className="btn btn-ghost" onClick={() => onEdit(person)}>
+                <IconEdit />
+                {t('detail.edit')}
+              </button>
+              {person.parentId && (
+                <button className="btn btn-danger" onClick={() => onRemove(person.id)}>
+                  <IconTrash />
+                  {t('detail.remove')}
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </motion.div>
     </div>
   )

@@ -140,12 +140,12 @@ Draft pertama ditulis dari docs SDK saja. Saat dicocokkan dengan
 
 - **Hanya publishable key di front-end.** Service key (akses admin penuh) tidak
   boleh masuk ke kode klien atau repo.
-- Aplikasi ini **mode terbuka** (siapa pun boleh menambah anggota, dan langsung
-  terlihat semua). Koleksi sengaja **tidak** memakai owner-column, sehingga
-  semua end-user anonim berbagi data yang sama. Konsekuensinya: siapa pun yang
-  punya publishable key dapat menulis. Untuk produksi, pertimbangkan
-  mengaktifkan auth end-user sungguhan + aturan tulis, atau memindahkan
-  penulisan ke server-side function.
+- Koleksi `people` **terbuka untuk dibaca** (perlu untuk realtime), dan tulisan
+  dilewatkan melalui **gerbang whitelist nomor telepon** (server-side function).
+  Lihat **[docs/MANGGALEH_WHITELIST.md](./MANGGALEH_WHITELIST.md)** untuk cara
+  kerja, batas keamanannya, dan cara mengelola daftar nomor. Singkatnya: gerbang
+  ini menahan pengguna biasa & utak-atik localStorage, tetapi bukan anti-bypass
+  mutlak karena publishable key tetap bisa menulis langsung ke koleksi terbuka.
 
 ## Catatan & batasan yang diketahui
 

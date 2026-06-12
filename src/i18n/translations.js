@@ -81,6 +81,23 @@ export const translations = {
     'toast.removed': '{name} dihapuih',
     'confirm.remove':
       'Hapuih {name} dari ranji kaluargo? Anak-anaknyo ka kahilangan panyambuang ka urang ko.',
+
+    'auth.signin': 'Masuak',
+    'auth.eyebrow': 'Masuak untuak Maubah',
+    'auth.title': 'Sahkan Diri',
+    'auth.note':
+      'Untuak manambah atau maubah ranji, masuakan namo jo nomor WhatsApp. Hanyo nomor nan tadaftar nan buliah maubah.',
+    'auth.name': 'Namo',
+    'auth.name_ph': 'Namo singkek',
+    'auth.phone': 'Nomor WhatsApp',
+    'auth.phone_ph': 'misa 0812-3456-7890',
+    'auth.submit': 'Masuak',
+    'auth.checking': 'Mamariso…',
+    'auth.err_denied': 'Nomor ko alun tadaftar untuak maubah. Hubungi pangurus kaluargo.',
+    'auth.err_network': 'Gaga manyambuang. Cubo baliak.',
+    'auth.hello': 'Salam, {name}',
+    'auth.signout': 'Kalua',
+    'auth.locked_hint': 'Masuak dulu untuak maubah ranji',
   },
 
   en: {
@@ -156,5 +173,22 @@ export const translations = {
     'toast.removed': '{name} removed',
     'confirm.remove':
       "Remove {name} from the family tree? Their children will lose their connection to this person.",
+
+    'auth.signin': 'Sign in',
+    'auth.eyebrow': 'Sign in to edit',
+    'auth.title': 'Verify yourself',
+    'auth.note':
+      'To add or edit the tree, enter your name and WhatsApp number. Only registered numbers may edit.',
+    'auth.name': 'Name',
+    'auth.name_ph': 'Short name',
+    'auth.phone': 'WhatsApp Number',
+    'auth.phone_ph': 'e.g. 0812-3456-7890',
+    'auth.submit': 'Sign in',
+    'auth.checking': 'Checking…',
+    'auth.err_denied': 'This number is not registered to edit. Contact the family admin.',
+    'auth.err_network': 'Connection failed. Please try again.',
+    'auth.hello': 'Hi, {name}',
+    'auth.signout': 'Sign out',
+    'auth.locked_hint': 'Sign in to edit the tree',
   },
 }
