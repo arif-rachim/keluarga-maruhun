@@ -189,8 +189,8 @@ export function TreeFolder({
           const years = lifespan(p)
 
           // Sub-baris pasangan (pada orang berpasangan ganda) — bisa di-collapse.
+          // Panah = buka/tutup anak; nama = buka detail pasangannya.
           if (r.kind === 'spouse') {
-            const act = () => (r.hasKids ? toggleSpouse(p.id) : onSelect(p.id))
             return (
               <div
                 key={`sp-${p.id}`}
@@ -218,7 +218,7 @@ export function TreeFolder({
                 ) : (
                   <span className="folder-chevron folder-chevron-empty" />
                 )}
-                <button className="folder-name" onClick={act}>
+                <button className="folder-name" onClick={() => onSelect(p.id)}>
                   <span className="folder-heart" aria-hidden="true">♥</span>
                   <span className={`folder-dot ${genderClass(p.gender)}`}>
                     {p.photo ? <img src={p.photo} alt="" /> : initials(p.name)}
@@ -274,7 +274,31 @@ export function TreeFolder({
                   <span className="folder-title">
                     {p.name}
                     {r.spouses.length > 0 && (
-                      <span className="folder-spouse"> ♥ {r.spouses.map((s) => s.name).join(', ')}</span>
+                      <span className="folder-spouse">
+                        {' '}
+                        ♥{' '}
+                        {r.spouses.map((s, i) => (
+                          <span
+                            key={s.id}
+                            className="folder-spouse-link"
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onSelect(s.id)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.stopPropagation()
+                                onSelect(s.id)
+                              }
+                            }}
+                          >
+                            {s.name}
+                            {i < r.spouses.length - 1 ? ', ' : ''}
+                          </span>
+                        ))}
+                      </span>
                     )}
                   </span>
                   {(years || r.childCount > 0) && (
