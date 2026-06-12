@@ -81,19 +81,38 @@ export function TreeFolder({
   const { childrenOf, spousesByOwner, roots } = useRelations(people)
 
   // Susun hanya baris yang TERLIHAT (subtree ter-collapse tidak dirender).
+  // Untuk orang berpasangan GANDA, anak dikelompokkan per ibu (parent2Id):
+  // tiap pasangan jadi sub-baris (bisa diklik) dengan anak-anaknya di bawahnya.
   const rows = useMemo(() => {
     const out = []
     const walk = (p, depth) => {
       const kids = childrenOf.get(p.id) || []
+      const spouses = spousesByOwner.get(p.id) || []
+      const multi = spouses.length > 1
       const isCol = collapsed?.has(p.id)
       out.push({
+        kind: 'person',
         person: p,
         depth,
         childCount: kids.length,
         collapsed: isCol,
-        spouses: spousesByOwner.get(p.id) || [],
+        hasKids: kids.length > 0,
+        spouses: multi ? [] : spouses, // pasangan tunggal ditampilkan inline
       })
-      if (kids.length && !isCol) for (const k of kids) walk(k, depth + 1)
+      if (!kids.length || isCol) return
+
+      if (!multi) {
+        for (const k of kids) walk(k, depth + 1)
+        return
+      }
+      // Pasangan ganda: kelompokkan anak per ibu.
+      for (const s of spouses) {
+        const grp = kids.filter((k) => k.parent2Id === s.id)
+        out.push({ kind: 'spouse', person: s, depth: depth + 1, childCount: grp.length })
+        for (const k of grp) walk(k, depth + 2)
+      }
+      const leftover = kids.filter((k) => !spouses.some((s) => s.id === k.parent2Id))
+      for (const k of leftover) walk(k, depth + 1)
     }
     for (const r of roots) walk(r, 0)
     return out
@@ -131,6 +150,37 @@ export function TreeFolder({
           const isSel = selectedId === p.id
           const isHi = highlightId === p.id
           const years = lifespan(p)
+
+          // Sub-baris pasangan (pada orang berpasangan ganda).
+          if (r.kind === 'spouse') {
+            return (
+              <div
+                key={`sp-${p.id}`}
+                ref={isHi ? highlightRef : null}
+                className={`folder-row is-spouse${isSel ? ' is-selected' : ''}${isHi ? ' is-highlight' : ''}`}
+                style={{ paddingLeft: 8 + r.depth * 16 }}
+              >
+                <span className="folder-chevron folder-chevron-empty" />
+                <button className="folder-name" onClick={() => onSelect(p.id)}>
+                  <span className="folder-heart" aria-hidden="true">♥</span>
+                  <span className={`folder-dot ${genderClass(p.gender)}`}>
+                    {p.photo ? <img src={p.photo} alt="" /> : initials(p.name)}
+                  </span>
+                  <span className="folder-text">
+                    <span className="folder-title">{p.name}</span>
+                    {(years || r.childCount > 0) && (
+                      <span className="folder-sub">
+                        {years}
+                        {years && r.childCount > 0 ? ' · ' : ''}
+                        {r.childCount > 0 ? t('folder.kids', { n: r.childCount }) : ''}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </div>
+            )
+          }
+
           return (
             <div
               key={p.id}
