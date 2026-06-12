@@ -1666,3 +1666,47 @@ textarea {
 .folder-spouse-link:active {
   opacity: 0.65;
 }
+
+/* Brand mark sebagai foto keluarga beranimasi (cross-fade restorasi). */
+.brand-mark-photo {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  padding: 0;
+}
+.brand-mark-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.brand-mark-photo .bp-original {
+  animation: bpOriginal 10s ease-in-out infinite;
+}
+.brand-mark-photo .bp-restored {
+  animation: bpRestored 10s ease-in-out infinite;
+}
+.brand-mark-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 75, 0.5);
+  pointer-events: none;
+}
+@keyframes bpOriginal {
+  0%, 26% { opacity: 1; }
+  36%, 92% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes bpRestored {
+  0%, 58% { opacity: 1; }
+  68%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark-photo .bp-original,
+  .brand-mark-photo .bp-restored {
+    animation: none;
+    opacity: 0;
+  }
+}

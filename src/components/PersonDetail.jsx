@@ -281,15 +281,13 @@ export function PersonDetail({
             <IconEdit />
             {t(requestMode ? 'detail.req_edit' : 'detail.edit')}
           </button>
-          {person.parentId && (
-            <button className="btn btn-danger" onClick={() => onRemove(person.id)}>
-              <IconTrash />
-              {t(requestMode ? 'detail.req_remove' : 'detail.remove')}
-            </button>
-          )}
+          <button className="btn btn-danger" onClick={() => onRemove(person.id)}>
+            <IconTrash />
+            {t(requestMode ? 'detail.req_remove' : 'detail.remove')}
+          </button>
         </div>
 
-        {requestMode && person.parentId && (
+        {requestMode && (
           <button
             className="btn btn-ghost reorder-btn"
             onClick={() => onMovePropose?.(person)}

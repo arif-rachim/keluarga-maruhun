@@ -12,7 +12,7 @@ import { MoveParentSheet } from './components/MoveParentSheet.jsx'
 import { RequestsPanel } from './components/RequestsPanel.jsx'
 import { SearchBar } from './components/SearchBar.jsx'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
-import { IconPlus, IconCheck, IconRefresh, IconInbox, RumahGadangRoof } from './components/icons.jsx'
+import { IconPlus, IconCheck, IconRefresh, IconInbox } from './components/icons.jsx'
 import { useI18n } from './i18n/i18n.jsx'
 import { useTreeOrientation } from './hooks/useOrientation.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
@@ -412,8 +412,11 @@ export default function App() {
       {/* Top bar */}
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark">
-            <RumahGadangRoof style={{ width: 24, height: 24, color: 'var(--gold)' }} />
+          <div className="brand-mark brand-mark-photo" aria-label="Keluarga Maruhun">
+            <img src="/photo/icon-restored-colored.png" alt="" draggable={false} />
+            <img src="/photo/icon-restored.png" className="bp-restored" alt="" draggable={false} />
+            <img src="/photo/icon.jpg" className="bp-original" alt="" draggable={false} />
+            <span className="brand-mark-ring" aria-hidden="true" />
           </div>
           <div className="brand-text">
             <div className="k">Maruhun</div>
