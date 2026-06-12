@@ -52,14 +52,15 @@ mg collections create --project silsilah-maruhun --env dev --name people \
 mg keys create --project silsilah-maruhun --env dev --type publishable
 ```
 
-> **⚠️ Catatan origin CLI.** Saat dokumen ini ditulis, `mg login` terhadap
-> `https://api.manggaleh.com` bisa gagal dengan `403 Invalid origin`. Penyebab:
-> CLI mengirim header `Origin: <baseUrl>` dan, lewat HTTP/2 (Node `fetch`),
-> server `better-auth` hanya memercayai `https://manggaleh.com` di
-> `trustedOrigins` — sehingga origin `api.manggaleh.com` ditolak. **Perbaikan
-> yang disarankan: tambahkan `https://api.manggaleh.com` ke `trustedOrigins`
-> server** agar CLI resmi berfungsi. (Provisioning awal proyek ini dilakukan
-> lewat endpoint control-plane langsung sebagai solusi sementara.)
+> **Catatan origin CLI (sudah teratasi).** Sebelumnya `mg login` ke
+> `https://api.manggaleh.com` bisa gagal `403 Invalid origin`: CLI mengirim
+> header `Origin: <baseUrl>` dan, lewat HTTP/2, server `better-auth` hanya
+> memercayai origin di `trustedOrigins`. **Server kini sudah dikonfigurasi
+> memercayai `https://api.manggaleh.com`** (lewat `BETTER_AUTH_URL` /
+> `CORS_ALLOWED_ORIGINS` → `controlPlaneOrigins`), sehingga `mg login` dan
+> seluruh provisioning lewat CLI resmi berfungsi normal. Bila memakai base URL
+> lain, tambahkan URL itu ke `CORS_ALLOWED_ORIGINS` server lalu restart API
+> (CLI ≥ 0.2.1 menampilkan petunjuk ini pada pesan error 403).
 
 ## Langkah 2 — Konfigurasi front-end
 
@@ -131,6 +132,9 @@ Draft pertama ditulis dari docs SDK saja. Saat dicocokkan dengan
 4. **Rate limit ~120 request/menit & maks 50 operasi/transaksi** → insert massal
    (seed) memakai **`client.tx`** per-batch 50 (`insertManyPeople`), bukan
    ratusan insert paralel yang akan kena `429`.
+5. **Origin CLI** — `mg login` ke `api.manggaleh.com` sempat `403 Invalid
+   origin`; sudah teratasi dengan memercayai origin itu di server (lihat catatan
+   pada Langkah 1). Provisioning kini bisa sepenuhnya lewat CLI resmi.
 
 ## Keamanan & mode terbuka
 
