@@ -99,6 +99,29 @@ export function TreeFolder({
     return s
   }, [spousesByOwner])
 
+  // Saat sebuah baris disorot (mis. dari pencarian), buka grup pasangan di
+  // sepanjang jalur leluhurnya — kalau tidak, anak yang berada di dalam grup
+  // pasangan yang tertutup tak akan terlihat (induk "sedarah" sudah dibuka oleh
+  // App lewat `collapsed`, tapi grup pasangan dikelola lokal di sini).
+  useEffect(() => {
+    if (!highlightId) return
+    const byId = new Map(people.map((p) => [p.id, p]))
+    const need = new Set()
+    let cur = byId.get(highlightId)
+    let guard = 0
+    while (cur && guard++ < 200) {
+      if (cur.parent2Id) need.add(cur.parent2Id) // grup ibu (pasangan)
+      cur = cur.parentId ? byId.get(cur.parentId) : null
+    }
+    if (need.size) {
+      setOpenSpouses((prev) => {
+        const next = new Set(prev)
+        for (const id of need) next.add(id)
+        return next
+      })
+    }
+  }, [highlightId, people])
+
   // Susun hanya baris yang TERLIHAT (subtree ter-collapse tidak dirender).
   // Untuk orang berpasangan GANDA, anak dikelompokkan per ibu (parent2Id):
   // tiap pasangan jadi sub-baris yang bisa di-collapse sendiri.
