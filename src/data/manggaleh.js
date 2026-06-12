@@ -27,6 +27,29 @@ export function isManggalehEnabled() {
 export const SEED_ON_EMPTY = import.meta.env.VITE_MANGGALEH_SEED === 'true'
 
 // ---------------------------------------------------------------------------
+// Penyimpanan token bearer (localStorage). SDK menyimpan token end-user di sini
+// agar bertahan antar reload; realtime/WS juga membacanya saat menyambung.
+// ---------------------------------------------------------------------------
+const TOKEN_KEY = 'manggaleh.token'
+const tokenStorage = {
+  get() {
+    try {
+      return localStorage.getItem(TOKEN_KEY)
+    } catch {
+      return null
+    }
+  },
+  set(t) {
+    try {
+      if (t) localStorage.setItem(TOKEN_KEY, t)
+      else localStorage.removeItem(TOKEN_KEY)
+    } catch {
+      /* abaikan (mis. mode privat) */
+    }
+  },
+}
+
+// ---------------------------------------------------------------------------
 // Klien (singleton, lazy). SDK di-import dinamis agar tidak dibundel saat mati.
 // ---------------------------------------------------------------------------
 let _clientPromise = null
@@ -38,14 +61,77 @@ function getClient() {
         tenant: CFG.tenant,
         env: CFG.env,
         apiKey: CFG.key,
+        storage: tokenStorage,
       }),
     )
   }
   return _clientPromise
 }
 
+// ---------------------------------------------------------------------------
+// Sesi end-user (WAJIB untuk Data API).
+//
+// Temuan saat mencocokkan dengan @manggaleh/sdk: publishable key SAJA tidak
+// cukup untuk membaca/menulis koleksi — server menolak dengan 401. Setiap
+// panggilan data harus membawa token bearer end-user. Karena aplikasi ini
+// "mode terbuka" (tanpa layar login, semua melihat pohon yang sama dan koleksi
+// `people` TIDAK owner-scoped), kita buat akun end-user ANONIM per-perangkat:
+// dibuat sekali (signUp), kredensialnya disimpan lokal, lalu dipakai signIn
+// pada kunjungan berikutnya. Identitas ini hanya untuk autentikasi; semua orang
+// tetap melihat & menyunting baris yang sama.
+// ---------------------------------------------------------------------------
+const CREDS_KEY = 'manggaleh.anon'
+
+function loadCreds() {
+  try {
+    return JSON.parse(localStorage.getItem(CREDS_KEY) || 'null')
+  } catch {
+    return null
+  }
+}
+function saveCreds(c) {
+  try {
+    localStorage.setItem(CREDS_KEY, JSON.stringify(c))
+  } catch {
+    /* abaikan */
+  }
+}
+function randomCreds() {
+  const hex = (n) => {
+    const a = new Uint8Array(n)
+    crypto.getRandomValues(a)
+    return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('')
+  }
+  return { email: `anon-${hex(8)}@${CFG.tenant}.local`, password: hex(16), name: 'Dunsanak' }
+}
+
+let _sessionPromise = null
+function ensureSession() {
+  if (_sessionPromise) return _sessionPromise
+  _sessionPromise = (async () => {
+    const client = await getClient()
+    let creds = loadCreds()
+    if (creds) {
+      try {
+        await client.auth.signIn({ email: creds.email, password: creds.password })
+        return client
+      } catch {
+        // Akun anonim hilang / kredensial usang → buat yang baru di bawah.
+      }
+    }
+    creds = randomCreds()
+    await client.auth.signUp({ email: creds.email, password: creds.password, name: creds.name })
+    saveCreds(creds)
+    return client
+  })().catch((e) => {
+    _sessionPromise = null // izinkan percobaan ulang pada panggilan berikutnya
+    throw e
+  })
+  return _sessionPromise
+}
+
 async function coll() {
-  const client = await getClient()
+  const client = await ensureSession()
   return client.data.from(COLLECTION)
 }
 
@@ -75,9 +161,11 @@ function toRow(p) {
     parent_id: p.parentId ?? null,
     parent2_id: p.parent2Id ?? null,
     spouse_id: p.spouseId ?? null,
-    // Kolom array (text[]). Bila proyekmu tak mendukung array, ganti ke kolom
-    // text/jsonb dan JSON.stringify di sini (sesuaikan fromRow juga).
-    spouse_ids: Array.isArray(p.spouseIds) ? p.spouseIds : null,
+    // Kolom `spouse_ids` bertipe jsonb. Server mengharapkan STRING JSON saat
+    // menulis (mengirim array mentah ditolak 400 "value format does not match
+    // column type") dan mengembalikannya sebagai array terurai saat membaca.
+    spouse_ids:
+      Array.isArray(p.spouseIds) && p.spouseIds.length ? JSON.stringify(p.spouseIds) : null,
     // `order` adalah kata-kunci SQL — pakai nama kolom `sibling_order`.
     sibling_order: p.order ?? null,
   }
@@ -124,10 +212,38 @@ async function resolveId(code) {
 // Operasi data (semua async).
 // ---------------------------------------------------------------------------
 export async function listPeople() {
-  const rows = await (await coll()).list()
+  // `list()` membatasi default 50 / maks 200 baris per panggilan. Karena
+  // silsilah bisa melebihi itu, ambil SELURUH baris lewat paginasi keyset.
+  const c = await coll()
+  const rows = []
+  let cursor
+  do {
+    const { data, nextCursor } = await c.page({ limit: 200, cursor })
+    rows.push(...data)
+    cursor = nextCursor ?? undefined
+  } while (cursor)
+
   idCache.clear()
   for (const r of rows) if (r.code) idCache.set(r.code, r.id)
   return rows.map(fromRow)
+}
+
+// Sisipkan BANYAK anggota sekaligus (dipakai saat seed proyek kosong).
+// Memakai transaksi `client.tx` agar puluhan/ratusan baris masuk dalam sedikit
+// request — server membatasi ~120 request/menit, jadi menyisipkan satu per satu
+// akan kena 429. Dipecah per-batch (ACID per batch).
+const TX_BATCH = 50
+export async function insertManyPeople(people) {
+  const client = await ensureSession()
+  for (let i = 0; i < people.length; i += TX_BATCH) {
+    const slice = people.slice(i, i + TX_BATCH)
+    const ops = slice.map((p) => ({ op: 'insert', collection: COLLECTION, values: toRow(p) }))
+    const results = await client.tx(ops)
+    for (const r of results) {
+      const row = r?.data
+      if (row?.code && row?.id) idCache.set(row.code, row.id)
+    }
+  }
 }
 
 export async function insertPerson(person) {
@@ -154,7 +270,7 @@ export async function deletePerson(code) {
 // (bukan data baris), pendekatan paling sederhana & andal untuk pohon kecil
 // (~puluhan baris) adalah memuat ulang seluruh daftar pada tiap event.
 export async function subscribePeople(onPeople) {
-  const client = await getClient()
+  const client = await ensureSession()
   return client.realtime.subscribe(COLLECTION, async () => {
     try {
       onPeople(await listPeople())

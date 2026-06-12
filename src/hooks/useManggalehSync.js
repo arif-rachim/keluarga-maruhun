@@ -4,6 +4,7 @@ import {
   SEED_ON_EMPTY,
   listPeople,
   insertPerson,
+  insertManyPeople,
   patchPerson,
   deletePerson,
   subscribePeople,

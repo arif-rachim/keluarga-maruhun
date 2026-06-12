@@ -1,13 +1,14 @@
-# Integrasi Cloud dengan Manggaleh (DRAFT)
+# Integrasi Cloud dengan Manggaleh
 
 Membuat silsilah tersinkron antar perangkat (real-time) dengan
 [Manggaleh](https://github.com/arif-rachim/manggaleh) sebagai backend —
 menggantikan penyimpanan localStorage yang per-perangkat.
 
-> **Status: draft / proof-of-concept.** Kode sudah ditulis dan build hijau,
-> tetapi **belum diuji terhadap server Manggaleh sungguhan** (host
-> `api.manggaleh.com` diblokir oleh network allowlist saat draft ini dibuat).
-> Jalankan langkah verifikasi di bawah dari mesin lokal sebelum diandalkan.
+> **Status: teruji terhadap server live** (`api.manggaleh.com`,
+> `@manggaleh/sdk@0.1.0`, `@manggaleh/cli@0.2.0`). Adapter sudah dicocokkan
+> dengan perilaku SDK asli (lihat "Perbedaan SDK vs draft awal" di bawah) dan
+> diverifikasi: seed 167 anggota, realtime lintas-klien, serta persistensi
+> setelah reload.
 
 ## Cara kerja (offline-first)
 
@@ -26,33 +27,39 @@ persis seperti semula (localStorage). Tidak ada perubahan perilaku default.
 
 | Berkas | Peran |
 | --- | --- |
-| `src/data/manggaleh.js` | Klien + pemetaan model↔baris + CRUD + realtime |
+| `src/data/manggaleh.js` | Klien + sesi end-user + pemetaan model↔baris + CRUD + realtime |
 | `src/hooks/useManggalehSync.js` | Hydrate, push-diff, langganan realtime |
 | `src/hooks/useFamily.js` | Memanggil `useManggalehSync` (satu baris, ter-guard) |
 | `.env.example` | Contoh konfigurasi (salin ke `.env.local`) |
+| `scripts/manggaleh-smoke.mjs` | Smoke-test adapter vs SDK live |
+| `scripts/manggaleh-seed.mjs` | Isi/atur ulang data awal lewat Node (tanpa browser) |
 
-## Langkah 1 — Provisioning (CLI, dari mesin lokal)
+## Langkah 1 — Provisioning (CLI)
 
 ```bash
 npm install -g @manggaleh/cli
 
-# Masuk dengan akunmu (lihat `mg --help` untuk perintah persisnya).
-mg login --url https://api.manggaleh.com --email you@example.com
-
-# Buat proyek (tenant).
+mg login --url https://api.manggaleh.com   # email & password ditanyakan
 mg projects create --name "Silsilah Maruhun" --slug silsilah-maruhun
 
-# Buat koleksi `people`. Nama kolom snake_case; `code` = id aplikasi (slug),
-# `sibling_order` dipakai karena `order` adalah kata-kunci SQL.
+# Koleksi `people`. Nama kolom snake_case; `code` = id aplikasi (slug, UNIK),
+# `sibling_order` dipakai karena `order` adalah kata-kunci SQL, `spouse_ids`
+# bertipe jsonb (CLI belum punya tipe array). Penanda tipe: `!`=NOT NULL, `^`=UNIQUE.
 mg collections create --project silsilah-maruhun --env dev --name people \
-  --columns "code:text!,name:text!,gender:text,birth_year:integer,death_year:integer,city:text,country:text,bio:text,phone:text,photo:text,parent_id:text,parent2_id:text,spouse_id:text,spouse_ids:text[],sibling_order:integer"
+  --columns "code:text!^,name:text!,gender:text,birth_year:integer,death_year:integer,city:text,country:text,bio:text,phone:text,photo:text,parent_id:text,parent2_id:text,spouse_id:text,spouse_ids:jsonb,sibling_order:integer"
 
 # Ambil PUBLISHABLE key (aman untuk browser).
 mg keys create --project silsilah-maruhun --env dev --type publishable
 ```
 
-> **Tambahkan indeks UNIK pada kolom `code`** (lewat dashboard bila CLI belum
-> mendukungnya) agar id aplikasi tidak terduplikasi.
+> **⚠️ Catatan origin CLI.** Saat dokumen ini ditulis, `mg login` terhadap
+> `https://api.manggaleh.com` bisa gagal dengan `403 Invalid origin`. Penyebab:
+> CLI mengirim header `Origin: <baseUrl>` dan, lewat HTTP/2 (Node `fetch`),
+> server `better-auth` hanya memercayai `https://manggaleh.com` di
+> `trustedOrigins` — sehingga origin `api.manggaleh.com` ditolak. **Perbaikan
+> yang disarankan: tambahkan `https://api.manggaleh.com` ke `trustedOrigins`
+> server** agar CLI resmi berfungsi. (Provisioning awal proyek ini dilakukan
+> lewat endpoint control-plane langsung sebagai solusi sementara.)
 
 ## Langkah 2 — Konfigurasi front-end
 
@@ -60,52 +67,88 @@ mg keys create --project silsilah-maruhun --env dev --type publishable
 cp .env.example .env.local
 ```
 
-Isi `.env.local` dengan slug proyek dan **publishable key** dari Langkah 1.
-Untuk run pertama yang masih kosong, set `VITE_MANGGALEH_SEED=true` agar 55
-anggota awal (dari `src/data/seed.js`) terisi otomatis — lalu **kembalikan ke
-`false`** setelah terisi.
+Isi `.env.local` dengan slug proyek dan **publishable key** dari Langkah 1
+(`.env.local` di-ignore git). Lalu:
 
 ```bash
 npm run dev
 ```
 
+### Mengisi data awal (seed)
+
+Ada dua cara — keduanya idempoten (hanya mengisi bila koleksi kosong):
+
+- **Lewat aplikasi:** set `VITE_MANGGALEH_SEED=true` sekali, jalankan
+  `npm run dev`, buka aplikasi (data 167 anggota terisi), lalu **kembalikan ke
+  `false`**.
+- **Lewat Node (tanpa browser):**
+
+  ```bash
+  node --env-file=.env.local scripts/manggaleh-seed.mjs          # seed bila kosong
+  node --env-file=.env.local scripts/manggaleh-seed.mjs --reset  # hapus semua lalu seed
+  ```
+
+Untuk memverifikasi adapter terhadap server kapan saja:
+
+```bash
+node --env-file=.env.local scripts/manggaleh-smoke.mjs
+```
+
 ## Pemetaan model
 
 Aplikasi memakai id slug buatan sendiri (mis. `datuk-maruhun`) sebagai
-penghubung relasi. Manggaleh mengelola `id` internalnya sendiri, jadi id
+penghubung relasi. Manggaleh mengelola `id` (uuid) internalnya sendiri, jadi id
 aplikasi disimpan di kolom `code` dan **selalu** dipakai sebagai identitas yang
 dilihat UI. Pemetaan field ada di `toRow` / `fromRow` (`src/data/manggaleh.js`):
 
 | Aplikasi | Kolom Manggaleh |
 | --- | --- |
-| `id` | `code` (text, unik) |
+| `id` | `code` (text, NOT NULL, unik) |
 | `birthYear` / `deathYear` | `birth_year` / `death_year` |
 | `parentId` / `parent2Id` | `parent_id` / `parent2_id` |
-| `spouseId` / `spouseIds` | `spouse_id` / `spouse_ids` (text[]) |
+| `spouseId` / `spouseIds` | `spouse_id` (text) / `spouse_ids` (jsonb) |
 | `order` | `sibling_order` |
 
-Bila proyekmu tak mendukung kolom array, ubah `spouse_ids` menjadi `text`/`jsonb`
-dan sesuaikan `JSON.stringify`/`JSON.parse` di `toRow`/`fromRow`.
+`spouse_ids` bertipe **jsonb**: ditulis sebagai **string JSON**
+(`JSON.stringify([...])`) dan dibaca kembali sebagai **array** yang sudah
+terurai — sudah ditangani di `toRow`/`fromRow`.
+
+## Perbedaan SDK vs draft awal (yang diperbaiki)
+
+Draft pertama ditulis dari docs SDK saja. Saat dicocokkan dengan
+`@manggaleh/sdk@0.1.0` yang sebenarnya, ditemukan & diperbaiki:
+
+1. **Data API mewajibkan sesi end-user.** Publishable key SAJA ditolak `401`.
+   Karena aplikasi ini mode terbuka (tanpa layar login), adapter membuat akun
+   **end-user anonim per-perangkat**: dibuat sekali (`signUp`), kredensialnya
+   disimpan lokal, lalu dipakai `signIn` pada kunjungan berikutnya
+   (`ensureSession` di `manggaleh.js`). Koleksi `people` tidak owner-scoped, jadi
+   semua end-user melihat & menyunting baris yang sama.
+2. **Kolom array tak didukung CLI** → `spouse_ids` memakai **jsonb** (string
+   JSON saat tulis, array saat baca), bukan `text[]`.
+3. **`list()` dibatasi 50 (maks 200) baris** → `listPeople` mengambil seluruh
+   baris lewat **paginasi keyset** (`page()` + `nextCursor`).
+4. **Rate limit ~120 request/menit & maks 50 operasi/transaksi** → insert massal
+   (seed) memakai **`client.tx`** per-batch 50 (`insertManyPeople`), bukan
+   ratusan insert paralel yang akan kena `429`.
 
 ## Keamanan & mode terbuka
 
 - **Hanya publishable key di front-end.** Service key (akses admin penuh) tidak
   boleh masuk ke kode klien atau repo.
 - Aplikasi ini **mode terbuka** (siapa pun boleh menambah anggota, dan langsung
-  terlihat semua). Maka koleksi sengaja **tidak** memakai owner-column RLS yang
-  akan menyembunyikan baris milik orang lain. Konsekuensinya: siapa pun yang
+  terlihat semua). Koleksi sengaja **tidak** memakai owner-column, sehingga
+  semua end-user anonim berbagi data yang sama. Konsekuensinya: siapa pun yang
   punya publishable key dapat menulis. Untuk produksi, pertimbangkan
-  mengaktifkan auth end-user + aturan tulis, atau memindahkan penulisan ke
-  server-side function.
+  mengaktifkan auth end-user sungguhan + aturan tulis, atau memindahkan
+  penulisan ke server-side function.
 
 ## Catatan & batasan yang diketahui
 
-- **Belum teruji live** (lihat status di atas). Verifikasi: tambah anggota di
-  satu browser → muncul otomatis di browser lain (realtime), lalu reload untuk
-  memastikan tersimpan.
 - **Realtime memuat-ulang seluruh daftar** tiap event — sederhana & andal untuk
-  pohon kecil (~puluhan baris). Untuk data besar, optimalkan ke patch per-baris.
+  pohon kecil/menengah (ratusan baris). Untuk data besar, optimalkan ke patch
+  per-baris.
 - **Push-diff memakai perbandingan JSON** antar snapshot; paling buruk hanya
   menghasilkan satu patch berlebih, tidak merusak data.
 - **`reset` lokal** (tombol refresh) hanya mengosongkan cache localStorage; ia
-  tidak menghapus data remote.
+  tidak menghapus data remote (gunakan `scripts/manggaleh-seed.mjs --reset`).
