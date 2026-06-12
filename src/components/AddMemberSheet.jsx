@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useSheetMotion } from '../hooks/useSheetMotion.js'
 import { IconClose, IconCamera, IconUser, IconEdit } from './icons.jsx'
 import { useI18n } from '../i18n/i18n.jsx'
 
@@ -39,6 +40,7 @@ export function AddMemberSheet({
   defaultRequester = '',
 }) {
   const { t } = useI18n()
+  const sheetMotion = useSheetMotion()
   const isEdit = !!editPerson
   const [form, setForm] = useState(() =>
     editPerson
@@ -129,10 +131,7 @@ export function AddMemberSheet({
       <motion.div
         className="sheet"
         onClick={(e) => e.stopPropagation()}
-        initial={{ y: 60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 60, opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+        {...sheetMotion}
       >
         <div className="sheet-grip" />
         <div className="sheet-head">

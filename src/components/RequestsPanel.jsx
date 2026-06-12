@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useSheetMotion } from '../hooks/useSheetMotion.js'
 import { IconClose, IconCheck } from './icons.jsx'
 import { useI18n } from '../i18n/i18n.jsx'
 
@@ -8,6 +9,7 @@ const OP_LABEL = { insert: 'req.op_add', update: 'req.op_edit', remove: 'req.op_
 // Daftar usulan pending. Menyetujui/menolak butuh PIN (dicek di server).
 export function RequestsPanel({ pending, onClose, onResolve }) {
   const { t } = useI18n()
+  const sheetMotion = useSheetMotion()
   const [target, setTarget] = useState(null) // { code, action }
   const [pin, setPin] = useState('')
   const [busy, setBusy] = useState(false)
@@ -45,10 +47,7 @@ export function RequestsPanel({ pending, onClose, onResolve }) {
       <motion.div
         className="sheet"
         onClick={(e) => e.stopPropagation()}
-        initial={{ y: 60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 60, opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+        {...sheetMotion}
       >
         <div className="sheet-grip" />
         <div className="sheet-head">

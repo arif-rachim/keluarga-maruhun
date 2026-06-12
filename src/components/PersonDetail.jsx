@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, Reorder } from 'framer-motion'
+import { useSheetMotion } from '../hooks/useSheetMotion.js'
 import { initials, lifespan, placeLabel, genderClass } from '../lib/format.js'
 import { useI18n } from '../i18n/i18n.jsx'
 import {
@@ -43,6 +44,7 @@ export function PersonDetail({
   requestMode = false,
 }) {
   const { t } = useI18n()
+  const sheetMotion = useSheetMotion()
 
   // Anak (lewat parentId atau sebagai ibu/parent2Id), terurut: urutan manual
   // dulu, lalu tahun lahir, lalu nama.
@@ -101,10 +103,7 @@ export function PersonDetail({
       <motion.div
         className="sheet"
         onClick={(e) => e.stopPropagation()}
-        initial={{ y: 60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 60, opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+        {...sheetMotion}
       >
         <div className="sheet-grip" />
         <button

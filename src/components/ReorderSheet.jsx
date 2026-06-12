@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, Reorder } from 'framer-motion'
+import { useSheetMotion } from '../hooks/useSheetMotion.js'
 import { IconClose } from './icons.jsx'
 import { initials } from '../lib/format.js'
 import { useI18n } from '../i18n/i18n.jsx'
@@ -18,6 +19,7 @@ const Grip = () => (
 // Lembar usulan ubah urutan anak: seret daftar, isi nama pengaju, kirim usulan.
 export function ReorderSheet({ person, items, defaultRequester, onClose, onSubmit }) {
   const { t } = useI18n()
+  const sheetMotion = useSheetMotion()
   const [orderIds, setOrderIds] = useState(() => items.map((c) => c.id))
   const [requester, setRequester] = useState(defaultRequester || '')
   const [note, setNote] = useState('')
@@ -37,10 +39,7 @@ export function ReorderSheet({ person, items, defaultRequester, onClose, onSubmi
       <motion.div
         className="sheet"
         onClick={(e) => e.stopPropagation()}
-        initial={{ y: 60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 60, opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+        {...sheetMotion}
       >
         <div className="sheet-grip" />
         <div className="sheet-head">
