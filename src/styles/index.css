@@ -1650,3 +1650,9 @@ textarea {
   height: 26px;
   font-size: 10px;
 }
+
+.reorder-btn {
+  margin-top: 12px;
+  width: 100%;
+  justify-content: center;
+}

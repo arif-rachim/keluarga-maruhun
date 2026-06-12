@@ -7,6 +7,7 @@ import { TreeFolder } from './components/TreeFolder.jsx'
 import { Intro } from './components/Intro.jsx'
 import { AddMemberSheet } from './components/AddMemberSheet.jsx'
 import { PersonDetail } from './components/PersonDetail.jsx'
+import { ReorderSheet } from './components/ReorderSheet.jsx'
 import { RequestsPanel } from './components/RequestsPanel.jsx'
 import { SearchBar } from './components/SearchBar.jsx'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
@@ -64,6 +65,7 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false)
   const [addAnchor, setAddAnchor] = useState(null) // { type, anchorId }
   const [editTarget, setEditTarget] = useState(null) // person yang sedang diubah
+  const [reorderTarget, setReorderTarget] = useState(null) // induk yang anaknya diurut
   const [toast, setToast] = useState('')
   const treeRef = useRef(null)
   const toastTimer = useRef(null)
@@ -321,6 +323,45 @@ export default function App() {
     [requestMode, byId, removePerson, submitProposal, flashToast, t],
   )
 
+  const childrenSorted = useCallback(
+    (pid) =>
+      people
+        .filter((p) => p.parentId === pid || p.parent2Id === pid)
+        .sort(
+          (a, b) =>
+            (a.order ?? 1e9) - (b.order ?? 1e9) ||
+            (a.birthYear || 9999) - (b.birthYear || 9999) ||
+            a.name.localeCompare(b.name),
+        ),
+    [people],
+  )
+
+  const openReorder = useCallback((person) => {
+    setSelectedId(null)
+    setReorderTarget(person)
+  }, [])
+
+  const handleReorderSubmit = useCallback(
+    ({ orderedCodes, requester, note }) => {
+      if (requester) saveRequester(requester)
+      if (reorderTarget) {
+        submitProposal({
+          id: newRequestId(),
+          op: 'reorder',
+          targetCode: reorderTarget.id,
+          targetName: reorderTarget.name,
+          payload: orderedCodes,
+          relation: null,
+          requester,
+          note,
+          summary: t('req.reorder_summary', { name: reorderTarget.name }),
+        })
+      }
+      setReorderTarget(null)
+    },
+    [reorderTarget, submitProposal, t],
+  )
+
   const handleResolve = useCallback(
     async (code, action, pin) => {
       const res = await resolveRequest(code, action, pin)
@@ -437,6 +478,7 @@ export default function App() {
             onEdit={openEdit}
             onRemove={handleRemove}
             onReorderChildren={reorderChildren}
+            onReorderPropose={openReorder}
             requestMode={requestMode}
           />
         )}
@@ -454,6 +496,19 @@ export default function App() {
             onSubmit={handleAddSubmit}
             proposal={requestMode}
             defaultRequester={loadRequester()}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Usul ubah urutan anak */}
+      <AnimatePresence>
+        {reorderTarget && (
+          <ReorderSheet
+            person={reorderTarget}
+            items={childrenSorted(reorderTarget.id)}
+            defaultRequester={loadRequester()}
+            onClose={() => setReorderTarget(null)}
+            onSubmit={handleReorderSubmit}
           />
         )}
       </AnimatePresence>

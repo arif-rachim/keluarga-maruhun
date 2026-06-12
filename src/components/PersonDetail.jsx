@@ -39,6 +39,7 @@ export function PersonDetail({
   onEdit,
   onRemove,
   onReorderChildren,
+  onReorderPropose,
   requestMode = false,
 }) {
   const { t } = useI18n()
@@ -236,6 +237,14 @@ export function PersonDetail({
                   )
                 })}
               </Reorder.Group>
+              )}
+              {requestMode && orderIds.length > 1 && (
+                <button
+                  className="btn btn-ghost reorder-btn"
+                  onClick={() => onReorderPropose?.(person)}
+                >
+                  {t('detail.req_reorder')}
+                </button>
               )}
             </div>
           )}

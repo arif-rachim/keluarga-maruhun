@@ -101,6 +101,17 @@ async function applyRemove(ctx, req) {
   for (var j = 0; j < ops.length; j += 50) await ctx.db.tx(ops.slice(j, j + 50))
 }
 
+async function applyReorder(ctx, req) {
+  // payload = daftar code anak sesuai urutan baru; set sibling_order = indeks.
+  var order = Array.isArray(req.payload) ? req.payload : (req.payload && req.payload.order) || []
+  var ops = []
+  for (var i = 0; i < order.length; i++) {
+    var row = await rowByCode(ctx, order[i])
+    if (row) ops.push({ op: 'update', collection: 'people', id: row.id, patch: { sibling_order: i } })
+  }
+  for (var j = 0; j < ops.length; j += 50) await ctx.db.tx(ops.slice(j, j + 50))
+}
+
 module.exports = async (input, ctx) => {
   var action = input && input.action
   if (action !== 'approve' && action !== 'reject') return { ok: false, error: 'bad_action' }
@@ -119,6 +130,7 @@ module.exports = async (input, ctx) => {
   if (req.op === 'insert') await applyInsert(ctx, req)
   else if (req.op === 'update') await applyUpdate(ctx, req)
   else if (req.op === 'remove') await applyRemove(ctx, req)
+  else if (req.op === 'reorder') await applyReorder(ctx, req)
   else return { ok: false, error: 'bad_op' }
 
   await ctx.db.update('requests', req.id, { status: 'approved' })
