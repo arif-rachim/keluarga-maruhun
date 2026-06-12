@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { initials, lifespan, genderClass } from '../lib/format.js'
 import { useI18n } from '../i18n/i18n.jsx'
 import { IconUnfold, IconFold } from './icons.jsx'
@@ -80,9 +80,28 @@ export function TreeFolder({
   const { t } = useI18n()
   const { childrenOf, spousesByOwner, roots } = useRelations(people)
 
+  // Grup pasangan (pada orang berpasangan ganda) bisa dibuka-tutup sendiri.
+  // Default TERTUTUP: tampilkan dulu pasangannya, anak baru muncul saat diklik.
+  const [openSpouses, setOpenSpouses] = useState(() => new Set())
+  const toggleSpouse = useCallback((id) => {
+    setOpenSpouses((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  // Semua id pasangan dari orang berpasangan ganda (untuk buka/tutup semua).
+  const multiSpouseIds = useMemo(() => {
+    const s = new Set()
+    for (const arr of spousesByOwner.values())
+      if (arr.length > 1) for (const sp of arr) s.add(sp.id)
+    return s
+  }, [spousesByOwner])
+
   // Susun hanya baris yang TERLIHAT (subtree ter-collapse tidak dirender).
   // Untuk orang berpasangan GANDA, anak dikelompokkan per ibu (parent2Id):
-  // tiap pasangan jadi sub-baris (bisa diklik) dengan anak-anaknya di bawahnya.
+  // tiap pasangan jadi sub-baris yang bisa di-collapse sendiri.
   const rows = useMemo(() => {
     const out = []
     const walk = (p, depth) => {
@@ -105,18 +124,26 @@ export function TreeFolder({
         for (const k of kids) walk(k, depth + 1)
         return
       }
-      // Pasangan ganda: kelompokkan anak per ibu.
+      // Pasangan ganda: tiap pasangan jadi grup yang bisa dibuka-tutup.
       for (const s of spouses) {
         const grp = kids.filter((k) => k.parent2Id === s.id)
-        out.push({ kind: 'spouse', person: s, depth: depth + 1, childCount: grp.length })
-        for (const k of grp) walk(k, depth + 2)
+        const sOpen = openSpouses.has(s.id)
+        out.push({
+          kind: 'spouse',
+          person: s,
+          depth: depth + 1,
+          childCount: grp.length,
+          hasKids: grp.length > 0,
+          collapsed: !sOpen,
+        })
+        if (grp.length && sOpen) for (const k of grp) walk(k, depth + 2)
       }
       const leftover = kids.filter((k) => !spouses.some((s) => s.id === k.parent2Id))
       for (const k of leftover) walk(k, depth + 1)
     }
     for (const r of roots) walk(r, 0)
     return out
-  }, [roots, childrenOf, spousesByOwner, collapsed])
+  }, [roots, childrenOf, spousesByOwner, collapsed, openSpouses])
 
   // Geser baris tersorot (dari pencarian) ke tengah.
   const highlightRef = useRef(null)
@@ -136,7 +163,17 @@ export function TreeFolder({
         </span>
         <button
           className="btn btn-ghost btn-icon"
-          onClick={anyCollapsed ? onExpandAll : onCollapseAll}
+          onClick={
+            anyCollapsed
+              ? () => {
+                  onExpandAll?.()
+                  setOpenSpouses(new Set(multiSpouseIds))
+                }
+              : () => {
+                  onCollapseAll?.()
+                  setOpenSpouses(new Set())
+                }
+          }
           title={anyCollapsed ? t('tree.expand_all') : t('tree.collapse_all')}
           aria-label={anyCollapsed ? t('tree.expand_all') : t('tree.collapse_all')}
         >
@@ -151,8 +188,9 @@ export function TreeFolder({
           const isHi = highlightId === p.id
           const years = lifespan(p)
 
-          // Sub-baris pasangan (pada orang berpasangan ganda).
+          // Sub-baris pasangan (pada orang berpasangan ganda) — bisa di-collapse.
           if (r.kind === 'spouse') {
+            const act = () => (r.hasKids ? toggleSpouse(p.id) : onSelect(p.id))
             return (
               <div
                 key={`sp-${p.id}`}
@@ -160,8 +198,27 @@ export function TreeFolder({
                 className={`folder-row is-spouse${isSel ? ' is-selected' : ''}${isHi ? ' is-highlight' : ''}`}
                 style={{ paddingLeft: 8 + r.depth * 16 }}
               >
-                <span className="folder-chevron folder-chevron-empty" />
-                <button className="folder-name" onClick={() => onSelect(p.id)}>
+                {r.hasKids ? (
+                  <button
+                    className={`folder-chevron${r.collapsed ? '' : ' open'}`}
+                    onClick={() => toggleSpouse(p.id)}
+                    aria-label={r.collapsed ? t('tree.expand_all') : t('tree.collapse_all')}
+                  >
+                    <svg viewBox="0 0 16 16" width="13" height="13">
+                      <path
+                        d="M6 4l4 4-4 4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  <span className="folder-chevron folder-chevron-empty" />
+                )}
+                <button className="folder-name" onClick={act}>
                   <span className="folder-heart" aria-hidden="true">♥</span>
                   <span className={`folder-dot ${genderClass(p.gender)}`}>
                     {p.photo ? <img src={p.photo} alt="" /> : initials(p.name)}
