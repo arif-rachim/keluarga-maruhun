@@ -875,6 +875,7 @@ textarea {
   max-width: 520px;
   max-height: 92vh;
   overflow-y: auto;
+  overflow-x: hidden;
   background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
   border: 1px solid var(--line);
   border-bottom: none;
@@ -1244,11 +1245,13 @@ textarea {
 
 .detail-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 24px;
 }
 .detail-actions .btn {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   justify-content: center;
 }
 .btn-danger {
@@ -1376,6 +1379,13 @@ textarea {
     width: 42px;
     padding: 0;
     justify-content: center;
+  }
+  /* Tombol aksi pada sheet bisa kepanjangan di HP — tumpuk vertikal. */
+  .detail-actions {
+    flex-direction: column;
+  }
+  .detail-actions .btn {
+    width: 100%;
   }
 }
 
