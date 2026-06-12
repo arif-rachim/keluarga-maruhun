@@ -41,6 +41,7 @@ export function PersonDetail({
   onRemove,
   onReorderChildren,
   onReorderPropose,
+  onMovePropose,
   requestMode = false,
 }) {
   const { t } = useI18n()
@@ -287,6 +288,15 @@ export function PersonDetail({
             </button>
           )}
         </div>
+
+        {requestMode && person.parentId && (
+          <button
+            className="btn btn-ghost reorder-btn"
+            onClick={() => onMovePropose?.(person)}
+          >
+            {t('detail.req_move')}
+          </button>
+        )}
       </motion.div>
     </div>
   )

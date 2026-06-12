@@ -8,6 +8,7 @@ import { Intro } from './components/Intro.jsx'
 import { AddMemberSheet } from './components/AddMemberSheet.jsx'
 import { PersonDetail } from './components/PersonDetail.jsx'
 import { ReorderSheet } from './components/ReorderSheet.jsx'
+import { MoveParentSheet } from './components/MoveParentSheet.jsx'
 import { RequestsPanel } from './components/RequestsPanel.jsx'
 import { SearchBar } from './components/SearchBar.jsx'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
@@ -66,6 +67,7 @@ export default function App() {
   const [addAnchor, setAddAnchor] = useState(null) // { type, anchorId }
   const [editTarget, setEditTarget] = useState(null) // person yang sedang diubah
   const [reorderTarget, setReorderTarget] = useState(null) // induk yang anaknya diurut
+  const [moveTarget, setMoveTarget] = useState(null) // orang yang dipindah orang tuanya
   const [toast, setToast] = useState('')
   const treeRef = useRef(null)
   const toastTimer = useRef(null)
@@ -362,6 +364,35 @@ export default function App() {
     [reorderTarget, submitProposal, t],
   )
 
+  const openMove = useCallback((person) => {
+    setSelectedId(null)
+    setMoveTarget(person)
+  }, [])
+
+  const handleMoveSubmit = useCallback(
+    ({ newParentId, newMotherId, requester, note }) => {
+      if (requester) saveRequester(requester)
+      if (moveTarget) {
+        const updated = { ...moveTarget, parentId: newParentId, parent2Id: newMotherId || null }
+        const fromName = moveTarget.parentId ? byId.get(moveTarget.parentId)?.name || '—' : '—'
+        const toName = byId.get(newParentId)?.name || '—'
+        submitProposal({
+          id: newRequestId(),
+          op: 'update',
+          targetCode: moveTarget.id,
+          targetName: moveTarget.name,
+          payload: personToRow(updated),
+          relation: null,
+          requester,
+          note,
+          summary: t('move.summary', { name: moveTarget.name, from: fromName, to: toName }),
+        })
+      }
+      setMoveTarget(null)
+    },
+    [moveTarget, byId, submitProposal, t],
+  )
+
   const handleResolve = useCallback(
     async (code, action, pin) => {
       const res = await resolveRequest(code, action, pin)
@@ -479,6 +510,7 @@ export default function App() {
             onRemove={handleRemove}
             onReorderChildren={reorderChildren}
             onReorderPropose={openReorder}
+            onMovePropose={openMove}
             requestMode={requestMode}
           />
         )}
@@ -509,6 +541,20 @@ export default function App() {
             defaultRequester={loadRequester()}
             onClose={() => setReorderTarget(null)}
             onSubmit={handleReorderSubmit}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Usul pindah orang tua */}
+      <AnimatePresence>
+        {moveTarget && (
+          <MoveParentSheet
+            person={moveTarget}
+            people={people}
+            byId={byId}
+            defaultRequester={loadRequester()}
+            onClose={() => setMoveTarget(null)}
+            onSubmit={handleMoveSubmit}
           />
         )}
       </AnimatePresence>
