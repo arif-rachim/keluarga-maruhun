@@ -32,6 +32,7 @@ export const translations = {
     'card.elder': 'Niniak',
     'tree.expand_all': 'Buka sadonyo',
     'tree.collapse_all': 'Tutuik sadonyo',
+    'folder.kids': '{n} anak',
 
     'search.placeholder': 'Cari namo atau kota…',
     'search.empty': 'Indak ado nan cocok.',
@@ -162,6 +163,7 @@ export const translations = {
     'card.elder': 'Elder',
     'tree.expand_all': 'Expand all',
     'tree.collapse_all': 'Collapse all',
+    'folder.kids': '{n} children',
 
     'search.placeholder': 'Search name or city…',
     'search.empty': 'No matches.',

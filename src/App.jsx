@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useFamily } from './hooks/useFamily.js'
 import { useRequests } from './hooks/useRequests.js'
 import { TreeView } from './components/TreeView.jsx'
+import { TreeFolder } from './components/TreeFolder.jsx'
 import { Intro } from './components/Intro.jsx'
 import { AddMemberSheet } from './components/AddMemberSheet.jsx'
 import { PersonDetail } from './components/PersonDetail.jsx'
@@ -12,6 +13,7 @@ import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
 import { IconPlus, IconCheck, IconRefresh, IconInbox, RumahGadangRoof } from './components/icons.jsx'
 import { useI18n } from './i18n/i18n.jsx'
 import { useTreeOrientation } from './hooks/useOrientation.js'
+import { useIsMobile } from './hooks/useIsMobile.js'
 import { generateId } from './data/store.js'
 import {
   isManggalehEnabled,
@@ -50,6 +52,7 @@ function editSummary(target, data, t) {
 export default function App() {
   const { t } = useI18n()
   const orientation = useTreeOrientation()
+  const isMobile = useIsMobile()
   const requestMode = isManggalehEnabled()
   const { people, byId, stats, addPerson, updatePerson, removePerson, reorderChildren, reset } =
     useFamily()
@@ -386,20 +389,34 @@ export default function App() {
       >
         <SearchBar people={people} onPick={handlePickFromSearch} />
 
-        <TreeView
-          ref={treeRef}
-          people={people}
-          collapsed={collapsed}
-          orientation={orientation}
-          selectedId={selectedId}
-          highlightId={highlightId}
-          onSelect={handleSelect}
-          onToggle={toggleCollapse}
-          onExpandAll={expandAll}
-          onCollapseAll={collapseAll}
-        />
-
-        <div className="stage-hint">{t('stage.hint')}</div>
+        {isMobile ? (
+          <TreeFolder
+            people={people}
+            collapsed={collapsed}
+            selectedId={selectedId}
+            highlightId={highlightId}
+            onSelect={handleSelect}
+            onToggle={toggleCollapse}
+            onExpandAll={expandAll}
+            onCollapseAll={collapseAll}
+          />
+        ) : (
+          <>
+            <TreeView
+              ref={treeRef}
+              people={people}
+              collapsed={collapsed}
+              orientation={orientation}
+              selectedId={selectedId}
+              highlightId={highlightId}
+              onSelect={handleSelect}
+              onToggle={toggleCollapse}
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+            />
+            <div className="stage-hint">{t('stage.hint')}</div>
+          </>
+        )}
       </main>
 
       {/* Detail orang */}
