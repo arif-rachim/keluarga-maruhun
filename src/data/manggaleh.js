@@ -236,7 +236,20 @@ export function newRequestId() {
   return 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
 }
 
-function fromRequestRow(r) {
+// Store live (optimistic + rekonsiliasi realtime) untuk koleksi `requests`.
+// Usulan yang dikirim langsung tampil di daftar; rollback otomatis bila gagal.
+// Realtime hanya membawa {op,id} — store yang mengambil baris & menggabungkan.
+let _reqLivePromise = null
+export async function getRequestsLive() {
+  if (!_reqLivePromise) {
+    _reqLivePromise = ensureSession().then((client) =>
+      client.data.from(REQUESTS).live({ order: 'created_at.desc', limit: 200 }),
+    )
+  }
+  return _reqLivePromise
+}
+
+export function fromRequestRow(r) {
   return {
     id: r.code,
     op: r.op,
@@ -252,11 +265,12 @@ function fromRequestRow(r) {
   }
 }
 
-// Ajukan usulan. req: { id, op, targetCode, targetName, payload, relation,
-// requester, note, summary }. payload/relation = objek (di-stringify ke jsonb).
+// Ajukan usulan (OPTIMISTIC lewat store live: langsung tampil, rollback bila
+// gagal). req: { id, op, targetCode, targetName, payload, relation, requester,
+// note, summary }. payload/relation = objek (di-stringify ke jsonb).
 export async function submitRequest(req) {
-  const c = await reqColl()
-  return c.insert({
+  const live = await getRequestsLive()
+  return live.insert({
     code: req.id,
     op: req.op,
     target_code: req.targetCode ?? null,

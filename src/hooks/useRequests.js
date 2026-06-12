@@ -1,46 +1,37 @@
-import { useEffect, useState } from 'react'
-import { isManggalehEnabled, listRequests, subscribeRequests } from '../data/manggaleh.js'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { isManggalehEnabled, getRequestsLive, fromRequestRow } from '../data/manggaleh.js'
 
-// Daftar usulan perubahan (hydrate + realtime). Aktif hanya bila Manggaleh menyala.
+// Daftar usulan perubahan memakai STORE LIVE Manggaleh:
+//  - usulan yang dikirim tampil OPTIMISTIK seketika (rollback bila gagal),
+//  - rekonsiliasi realtime efisien (tak perlu muat-ulang seluruh daftar).
+// Aktif hanya bila Manggaleh menyala.
+const EMPTY = []
+const NOOP_SUB = () => () => {}
+
 export function useRequests() {
   const enabled = isManggalehEnabled()
-  const [requests, setRequests] = useState([])
-  const [loaded, setLoaded] = useState(false)
+  const [store, setStore] = useState(null)
 
   useEffect(() => {
     if (!enabled) return
-    let unsub = null
     let cancelled = false
-    ;(async () => {
-      try {
-        const r = await listRequests()
-        if (!cancelled) {
-          setRequests(r)
-          setLoaded(true)
-        }
-      } catch (e) {
-        console.warn('Manggaleh: gagal memuat usulan.', e)
-      }
-      try {
-        unsub = await subscribeRequests((r) => {
-          if (!cancelled) setRequests(r)
-        })
-      } catch (e) {
-        console.warn('Manggaleh: realtime usulan mati.', e)
-      }
-    })()
+    getRequestsLive()
+      .then((s) => {
+        if (!cancelled) setStore(s)
+      })
+      .catch((e) => console.warn('Manggaleh: store usulan gagal dimuat.', e))
     return () => {
       cancelled = true
-      if (typeof unsub === 'function') {
-        try {
-          unsub()
-        } catch {
-          /* abaikan */
-        }
-      }
     }
   }, [enabled])
 
-  const pending = requests.filter((r) => r.status === 'pending')
-  return { enabled, requests, pending, loaded }
+  const rows = useSyncExternalStore(
+    store ? store.subscribe : NOOP_SUB,
+    store ? store.getSnapshot : () => EMPTY,
+  )
+
+  const requests = useMemo(() => rows.map(fromRequestRow), [rows])
+  const pending = useMemo(() => requests.filter((r) => r.status === 'pending'), [requests])
+
+  return { enabled, requests, pending, loaded: !!store }
 }
