@@ -194,60 +194,117 @@ function fromRow(r) {
   return p
 }
 
-// ---------------------------------------------------------------------------
-// Sesi pengguna + gerbang tulis (whitelist).
-//
-// Tulisan TIDAK langsung ke koleksi; semuanya lewat server-side function
-// `mutatePeople` yang MEMERIKSA ULANG nomor telepon pemanggil terhadap koleksi
-// `whitelist`. Nomor pengguna yang sedang masuk disimpan lokal dan disertakan
-// pada tiap mutasi. (Catatan keamanan: publishable key tetap bisa menulis
-// langsung ke koleksi terbuka, jadi ini gerbang tingkat-aplikasi yang tahan
-// utak-atik state browser, bukan anti-bypass mutlak — lihat
-// docs/MANGGALEH_WHITELIST.md.)
-// ---------------------------------------------------------------------------
-const SESSION_KEY = 'manggaleh.session' // { name, phone }
+// Ekspor pemetaan agar UI bisa membangun payload usulan dengan satu sumber.
+export { toRow as personToRow }
 
-export function canonPhone(p) {
-  let d = String(p ?? '').replace(/[^0-9]/g, '')
-  if (d.startsWith('0')) d = '62' + d.slice(1)
-  return d
+// ---------------------------------------------------------------------------
+// Usulan perubahan (change requests).
+//
+// Model baru: tak ada tulis langsung ke `people` dari aplikasi. Siapa pun boleh
+// MENGAJUKAN usulan (insert ke koleksi `requests`, terbuka). Menyetujui usulan
+// butuh PIN 6 digit yang dicek SERVER-SIDE di function `resolveRequest`, yang
+// juga menerapkan perubahan ke `people`. (Catatan: publishable key secara teknis
+// masih bisa menulis `people` langsung — gerbang ini tingkat-aplikasi, bukan
+// anti-bypass mutlak. Lihat docs/MANGGALEH_REQUESTS.md.)
+// ---------------------------------------------------------------------------
+const REQUESTS = import.meta.env.VITE_MANGGALEH_REQUESTS || 'requests'
+
+async function reqColl() {
+  const client = await ensureSession()
+  return client.data.from(REQUESTS)
 }
 
-export function loadSession() {
+// Nama pengaju diingat lokal agar tak perlu mengetik ulang.
+const REQUESTER_KEY = 'manggaleh.requester'
+export function loadRequester() {
   try {
-    return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+    return localStorage.getItem(REQUESTER_KEY) || ''
   } catch {
-    return null
+    return ''
   }
 }
-export function saveSession(s) {
+export function saveRequester(name) {
   try {
-    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s))
-    else localStorage.removeItem(SESSION_KEY)
+    if (name) localStorage.setItem(REQUESTER_KEY, name)
+    else localStorage.removeItem(REQUESTER_KEY)
   } catch {
     /* abaikan */
   }
 }
 
-// Tanya server apakah nomor ada di whitelist. -> { approved, name }
-export async function checkAccess(phone) {
-  const client = await ensureSession()
-  const res = await client.functions.invoke('checkAccess', { phone: canonPhone(phone) })
-  return res || { approved: false, name: null }
+export function newRequestId() {
+  return 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
 }
 
-// Jalankan satu mutasi lewat function bergerbang. Melempar bila ditolak server.
-async function mutate(payload) {
-  const phone = loadSession()?.phone
+function fromRequestRow(r) {
+  return {
+    id: r.code,
+    op: r.op,
+    targetCode: r.target_code ?? null,
+    targetName: r.target_name || '',
+    payload: r.payload ?? null, // jsonb -> objek terurai
+    relation: r.relation ?? null,
+    requester: r.requester || '',
+    note: r.note || '',
+    status: r.status || 'pending',
+    summary: r.summary || '',
+    createdAt: r.created_at ?? null,
+  }
+}
+
+// Ajukan usulan. req: { id, op, targetCode, targetName, payload, relation,
+// requester, note, summary }. payload/relation = objek (di-stringify ke jsonb).
+export async function submitRequest(req) {
+  const c = await reqColl()
+  return c.insert({
+    code: req.id,
+    op: req.op,
+    target_code: req.targetCode ?? null,
+    target_name: req.targetName ?? '',
+    payload: req.payload ? JSON.stringify(req.payload) : null,
+    relation: req.relation ? JSON.stringify(req.relation) : null,
+    requester: req.requester ?? '',
+    note: req.note ?? '',
+    status: 'pending',
+    summary: req.summary ?? '',
+  })
+}
+
+export async function listRequests() {
+  const c = await reqColl()
+  const rows = []
+  let cursor
+  do {
+    const { data, nextCursor } = await c.page({ limit: 200, cursor, order: 'created_at.desc' })
+    rows.push(...data)
+    cursor = nextCursor ?? undefined
+  } while (cursor)
+  return rows.map(fromRequestRow)
+}
+
+export async function subscribeRequests(onRequests) {
   const client = await ensureSession()
-  const res = await client.functions.invoke('mutatePeople', { ...payload, phone })
+  return client.realtime.subscribe(REQUESTS, async () => {
+    try {
+      onRequests(await listRequests())
+    } catch (e) {
+      console.warn('Manggaleh: gagal menyegarkan usulan.', e)
+    }
+  })
+}
+
+// Setujui / tolak usulan. action: 'approve' | 'reject'. Butuh PIN (dicek server).
+export async function resolveRequest(code, action, pin) {
+  const client = await ensureSession()
+  const res = await client.functions.invoke('resolveRequest', { code, action, pin })
   if (!res || res.ok !== true) {
-    throw new Error('Manggaleh: mutasi ditolak (' + (res?.error || 'unknown') + ')')
+    const err = new Error('resolve gagal')
+    err.code = res?.error || 'unknown'
+    throw err
   }
   return res
 }
 
-// ---------------------------------------------------------------------------
 // Operasi data.  BACA langsung (publishable + end-user); TULIS lewat gerbang.
 // ---------------------------------------------------------------------------
 export async function listPeople() {
@@ -276,18 +333,6 @@ export async function insertManyPeople(people) {
       .map((p) => ({ op: 'insert', collection: COLLECTION, values: toRow(p) }))
     await client.tx(ops)
   }
-}
-
-export async function insertPerson(person) {
-  return mutate({ op: 'insert', values: toRow(person) })
-}
-
-export async function patchPerson(code, person) {
-  return mutate({ op: 'update', code, patch: toRow(person) })
-}
-
-export async function deletePerson(code) {
-  return mutate({ op: 'remove', code })
 }
 
 // Berlangganan perubahan koleksi. Karena event realtime hanya membawa op+id

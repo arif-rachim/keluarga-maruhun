@@ -1,26 +1,61 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useFamily } from './hooks/useFamily.js'
+import { useRequests } from './hooks/useRequests.js'
 import { TreeView } from './components/TreeView.jsx'
 import { Intro } from './components/Intro.jsx'
 import { AddMemberSheet } from './components/AddMemberSheet.jsx'
 import { PersonDetail } from './components/PersonDetail.jsx'
+import { RequestsPanel } from './components/RequestsPanel.jsx'
 import { SearchBar } from './components/SearchBar.jsx'
 import { LanguageSwitcher } from './components/LanguageSwitcher.jsx'
-import { LoginSheet } from './components/LoginSheet.jsx'
-import { IconPlus, IconCheck, IconRefresh, IconPhone, RumahGadangRoof } from './components/icons.jsx'
+import { IconPlus, IconCheck, IconRefresh, IconInbox, RumahGadangRoof } from './components/icons.jsx'
 import { useI18n } from './i18n/i18n.jsx'
-import { useAccess } from './access/useAccess.jsx'
 import { useTreeOrientation } from './hooks/useOrientation.js'
+import { generateId } from './data/store.js'
+import {
+  isManggalehEnabled,
+  submitRequest,
+  resolveRequest,
+  newRequestId,
+  personToRow,
+  loadRequester,
+  saveRequester,
+} from './data/manggaleh.js'
+
+const REL_LABEL = { child: 'req.rel_child', spouse: 'req.rel_spouse' }
+
+// Ringkasan singkat perubahan untuk ditampilkan di kartu usulan.
+function editSummary(target, data, t) {
+  const fields = [
+    ['name', 'req.f_name'],
+    ['city', 'req.f_city'],
+    ['country', 'req.f_country'],
+    ['birthYear', 'req.f_birth'],
+    ['deathYear', 'req.f_death'],
+    ['phone', 'req.f_phone'],
+  ]
+  const out = []
+  for (const [k, label] of fields) {
+    const ov = target[k] ?? ''
+    const nv = data[k] ?? ''
+    if (String(ov) !== String(nv)) out.push(`${t(label)}: ${ov || '—'} → ${nv || '—'}`)
+  }
+  if ((target.gender || '') !== (data.gender || '')) out.push(t('req.f_gender'))
+  if ((target.bio || '') !== (data.bio || '')) out.push(t('req.f_bio'))
+  if ((target.photo || null) !== (data.photo || null)) out.push(t('req.f_photo'))
+  return out.length ? out.join('; ') : t('req.no_change')
+}
 
 export default function App() {
   const { t } = useI18n()
   const orientation = useTreeOrientation()
-  const { enabled: authEnabled, canEdit, session, signOut } = useAccess()
+  const requestMode = isManggalehEnabled()
   const { people, byId, stats, addPerson, updatePerson, removePerson, reorderChildren, reset } =
     useFamily()
+  const { pending } = useRequests()
   const [showIntro, setShowIntro] = useState(true)
-  const [loginOpen, setLoginOpen] = useState(false)
+  const [requestsOpen, setRequestsOpen] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
   const [highlightId, setHighlightId] = useState(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -95,13 +130,10 @@ export default function App() {
   // sebentar — tanpa membuka panel detail.
   const handlePickFromSearch = useCallback(
     (id) => {
-      // Titik awal penelusuran: bila pasangan yang menikah masuk (tanpa
-      // induk), pakai pasangannya yang sedarah agar node-nya pasti tampak.
       let cur = byId.get(id)
       if (cur && !cur.parentId && cur.spouseId && byId.has(cur.spouseId)) {
         cur = byId.get(cur.spouseId)
       }
-      // Kumpulkan seluruh leluhur yang harus dibuka.
       const toOpen = []
       let p = cur?.parentId ? byId.get(cur.parentId) : null
       while (p) {
@@ -115,13 +147,10 @@ export default function App() {
           return next
         })
       }
-
-      // Jangan buka panel detail; cukup tengahkan + sorot node-nya.
       setSelectedId(null)
       setHighlightId(id)
       clearTimeout(highlightTimer.current)
       highlightTimer.current = setTimeout(() => setHighlightId(null), 2600)
-      // Beri waktu layout diperbarui (bila ada leluhur yang baru dibuka).
       setTimeout(() => treeRef.current?.focusPerson(id), toOpen.length ? 240 : 60)
     },
     [byId],
@@ -145,10 +174,89 @@ export default function App() {
     setEditTarget(null)
   }, [])
 
+  // Kirim usulan (mode Manggaleh) — tidak mengubah pohon langsung.
+  const submitProposal = useCallback(
+    async (req) => {
+      try {
+        await submitRequest(req)
+        flashToast(t('req.toast_submitted'))
+      } catch (e) {
+        console.warn('Gagal mengirim usulan', e)
+        flashToast(t('req.toast_failed'))
+      }
+    },
+    [flashToast, t],
+  )
+
   const handleAddSubmit = useCallback(
     (data, relation) => {
-      // Mode ubah: perbarui data orang yang sudah ada.
-      if (relation?.type === 'edit') {
+      const isEdit = relation?.type === 'edit'
+
+      // ── Mode usulan: bangun request, jangan ubah pohon ──────────────────
+      if (requestMode) {
+        if (data.requester) saveRequester(data.requester)
+        if (isEdit) {
+          const target = byId.get(relation.anchorId)
+          if (!target) return
+          const updated = {
+            ...target,
+            name: data.name,
+            gender: data.gender,
+            birthYear: data.birthYear,
+            deathYear: data.deathYear,
+            city: data.city,
+            country: data.country,
+            phone: data.phone,
+            bio: data.bio,
+            photo: data.photo,
+          }
+          submitProposal({
+            id: newRequestId(),
+            op: 'update',
+            targetCode: target.id,
+            targetName: target.name,
+            payload: personToRow(updated),
+            relation: null,
+            requester: data.requester,
+            note: data.note,
+            summary: editSummary(target, data, t),
+          })
+        } else {
+          const newId = generateId(data.name)
+          const newPerson = {
+            id: newId,
+            name: data.name,
+            gender: data.gender,
+            birthYear: data.birthYear,
+            deathYear: data.deathYear,
+            city: data.city,
+            country: data.country,
+            phone: data.phone,
+            bio: data.bio,
+            photo: data.photo,
+            parentId: relation.type === 'child' ? relation.anchorId : null,
+            spouseId: relation.type === 'spouse' ? relation.anchorId : null,
+          }
+          const anchorName = byId.get(relation.anchorId)?.name || ''
+          submitProposal({
+            id: newRequestId(),
+            op: 'insert',
+            targetCode: newId,
+            targetName: data.name,
+            payload: personToRow(newPerson),
+            relation: { type: relation.type, anchorCode: relation.anchorId },
+            requester: data.requester,
+            note: data.note,
+            summary: `${t('req.add_summary', { name: data.name })} · ${t(REL_LABEL[relation.type])} ${anchorName}`,
+          })
+        }
+        setAddOpen(false)
+        setEditTarget(null)
+        return
+      }
+
+      // ── Mode langsung (localStorage) ────────────────────────────────────
+      if (isEdit) {
         const id = relation.anchorId
         updatePerson(id, data)
         setAddOpen(false)
@@ -157,12 +265,10 @@ export default function App() {
         setTimeout(() => treeRef.current?.focusPerson(id), 120)
         return
       }
-
       const id = addPerson(data, relation)
       setAddOpen(false)
       setSelectedId(null)
       setEditTarget(null)
-      // Pastikan induknya terbuka agar anggota baru langsung terlihat.
       if (relation?.anchorId) {
         setCollapsed((prev) => {
           const next = new Set(prev)
@@ -171,31 +277,60 @@ export default function App() {
         })
       }
       flashToast(t('toast.added', { name: data.name || '—' }))
-      // Beri waktu layout diperbarui, lalu fokuskan.
       setTimeout(() => treeRef.current?.focusPerson(id), 250)
     },
-    [addPerson, updatePerson, flashToast, t],
+    [requestMode, byId, addPerson, updatePerson, submitProposal, flashToast, t],
   )
 
   const handleRemove = useCallback(
     (id) => {
       const p = byId.get(id)
       if (!p) return
-      const ok = window.confirm(t('confirm.remove', { name: p.name }))
-      if (!ok) return
+
+      if (requestMode) {
+        if (!window.confirm(t('req.remove_confirm', { name: p.name }))) return
+        let requester = loadRequester()
+        if (!requester) {
+          requester = (window.prompt(t('req.ask_name')) || '').trim()
+          if (!requester) return
+          saveRequester(requester)
+        }
+        submitProposal({
+          id: newRequestId(),
+          op: 'remove',
+          targetCode: p.id,
+          targetName: p.name,
+          payload: null,
+          relation: null,
+          requester,
+          note: '',
+          summary: t('req.remove_summary', { name: p.name }),
+        })
+        setSelectedId(null)
+        return
+      }
+
+      if (!window.confirm(t('confirm.remove', { name: p.name }))) return
       removePerson(id)
       setSelectedId(null)
       flashToast(t('toast.removed', { name: p.name }))
     },
-    [byId, removePerson, flashToast, t],
+    [requestMode, byId, removePerson, submitProposal, flashToast, t],
+  )
+
+  const handleResolve = useCallback(
+    async (code, action, pin) => {
+      const res = await resolveRequest(code, action, pin)
+      flashToast(t(action === 'approve' ? 'req.toast_approved' : 'req.toast_rejected'))
+      return res
+    },
+    [flashToast, t],
   )
 
   return (
     <div className="app-shell">
       <AnimatePresence>
-        {showIntro && (
-          <Intro stats={stats} onEnter={() => setShowIntro(false)} />
-        )}
+        {showIntro && <Intro stats={stats} onEnter={() => setShowIntro(false)} />}
       </AnimatePresence>
 
       {/* Top bar */}
@@ -218,29 +353,23 @@ export default function App() {
           >
             <IconRefresh />
           </button>
-          {authEnabled &&
-            (session ? (
-              <button
-                className="btn btn-ghost btn-auth"
-                onClick={signOut}
-                title={t('auth.signout')}
-              >
-                <span className="auth-dot" aria-hidden="true" />
-                <span className="btn-label">{t('auth.hello', { name: session.name })}</span>
-              </button>
-            ) : (
-              <button className="btn btn-ghost btn-auth" onClick={() => setLoginOpen(true)}>
-                <IconPhone />
-                <span className="btn-label">{t('auth.signin')}</span>
-              </button>
-            ))}
+          {requestMode && (
+            <button
+              className="btn btn-ghost btn-auth"
+              onClick={() => setRequestsOpen(true)}
+              title={t('req.panel_title')}
+            >
+              <IconInbox />
+              <span className="btn-label">{t('req.inbox')}</span>
+              {pending.length > 0 && <span className="req-count">{pending.length}</span>}
+            </button>
+          )}
           <LanguageSwitcher />
-          <button
-            className="btn btn-primary"
-            onClick={() => (canEdit ? openAdd() : setLoginOpen(true))}
-          >
+          <button className="btn btn-primary" onClick={() => openAdd()}>
             <IconPlus />
-            <span className="btn-label">{t('action.register')}</span>
+            <span className="btn-label">
+              {t(requestMode ? 'action.propose_add' : 'action.register')}
+            </span>
           </button>
         </div>
       </header>
@@ -290,12 +419,12 @@ export default function App() {
             onEdit={openEdit}
             onRemove={handleRemove}
             onReorderChildren={reorderChildren}
-            canEdit={canEdit}
+            requestMode={requestMode}
           />
         )}
       </AnimatePresence>
 
-      {/* Tambah anggota */}
+      {/* Tambah / usul anggota */}
       <AnimatePresence>
         {addOpen && (
           <AddMemberSheet
@@ -305,13 +434,21 @@ export default function App() {
             editPerson={editTarget}
             onClose={closeSheet}
             onSubmit={handleAddSubmit}
+            proposal={requestMode}
+            defaultRequester={loadRequester()}
           />
         )}
       </AnimatePresence>
 
-      {/* Masuk (whitelist) */}
+      {/* Panel usulan */}
       <AnimatePresence>
-        {loginOpen && <LoginSheet onClose={() => setLoginOpen(false)} />}
+        {requestsOpen && (
+          <RequestsPanel
+            pending={pending}
+            onClose={() => setRequestsOpen(false)}
+            onResolve={handleResolve}
+          />
+        )}
       </AnimatePresence>
 
       {/* Toast */}

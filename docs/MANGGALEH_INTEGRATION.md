@@ -140,11 +140,11 @@ Draft pertama ditulis dari docs SDK saja. Saat dicocokkan dengan
 
 - **Hanya publishable key di front-end.** Service key (akses admin penuh) tidak
   boleh masuk ke kode klien atau repo.
-- Koleksi `people` **terbuka untuk dibaca** (perlu untuk realtime), dan tulisan
-  dilewatkan melalui **gerbang whitelist nomor telepon** (server-side function).
-  Lihat **[docs/MANGGALEH_WHITELIST.md](./MANGGALEH_WHITELIST.md)** untuk cara
-  kerja, batas keamanannya, dan cara mengelola daftar nomor. Singkatnya: gerbang
-  ini menahan pengguna biasa & utak-atik localStorage, tetapi bukan anti-bypass
+- Koleksi `people` **terbuka untuk dibaca** (perlu untuk realtime), dan semua
+  perubahan dilewatkan melalui **alur usulan + persetujuan PIN** (server-side
+  function `resolveRequest`). Lihat **[docs/MANGGALEH_REQUESTS.md](./MANGGALEH_REQUESTS.md)**
+  untuk cara kerja, cara menyetel PIN, dan batas keamanannya. Singkatnya: alur ini
+  menjaga integritas (tak ada ubah langsung dari UI), tetapi bukan anti-bypass
   mutlak karena publishable key tetap bisa menulis langsung ke koleksi terbuka.
 
 ## Catatan & batasan yang diketahui

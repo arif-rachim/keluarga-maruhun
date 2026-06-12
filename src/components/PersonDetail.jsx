@@ -39,7 +39,7 @@ export function PersonDetail({
   onEdit,
   onRemove,
   onReorderChildren,
-  canEdit = true,
+  requestMode = false,
 }) {
   const { t } = useI18n()
 
@@ -179,11 +179,11 @@ export function PersonDetail({
             <div className="rel-group">
               <div className="rel-label">
                 {t('detail.children')} ({orderIds.length})
-                {canEdit && orderIds.length > 1 && (
+                {!requestMode && orderIds.length > 1 && (
                   <span className="rel-hint">{t('detail.reorder_hint')}</span>
                 )}
               </div>
-              {!canEdit ? (
+              {requestMode ? (
                 <div className="rel-chips">
                   {orderIds.map((cid, i) => {
                     const c = byId.get(cid)
@@ -254,35 +254,31 @@ export function PersonDetail({
           )}
         </div>
 
-        {canEdit && (
-          <>
-            <div className="detail-actions">
-              <button className="btn btn-ghost" onClick={() => onAddTo('child', person.id)}>
-                <IconPlusSm />
-                {t('detail.add_child')}
-              </button>
-              {spouses.length === 0 && (
-                <button className="btn btn-ghost" onClick={() => onAddTo('spouse', person.id)}>
-                  <IconHeart />
-                  {t('detail.add_spouse')}
-                </button>
-              )}
-            </div>
+        <div className="detail-actions">
+          <button className="btn btn-ghost" onClick={() => onAddTo('child', person.id)}>
+            <IconPlusSm />
+            {t(requestMode ? 'detail.req_add_child' : 'detail.add_child')}
+          </button>
+          {spouses.length === 0 && (
+            <button className="btn btn-ghost" onClick={() => onAddTo('spouse', person.id)}>
+              <IconHeart />
+              {t(requestMode ? 'detail.req_add_spouse' : 'detail.add_spouse')}
+            </button>
+          )}
+        </div>
 
-            <div className="detail-actions" style={{ marginTop: 10 }}>
-              <button className="btn btn-ghost" onClick={() => onEdit(person)}>
-                <IconEdit />
-                {t('detail.edit')}
-              </button>
-              {person.parentId && (
-                <button className="btn btn-danger" onClick={() => onRemove(person.id)}>
-                  <IconTrash />
-                  {t('detail.remove')}
-                </button>
-              )}
-            </div>
-          </>
-        )}
+        <div className="detail-actions" style={{ marginTop: 10 }}>
+          <button className="btn btn-ghost" onClick={() => onEdit(person)}>
+            <IconEdit />
+            {t(requestMode ? 'detail.req_edit' : 'detail.edit')}
+          </button>
+          {person.parentId && (
+            <button className="btn btn-danger" onClick={() => onRemove(person.id)}>
+              <IconTrash />
+              {t(requestMode ? 'detail.req_remove' : 'detail.remove')}
+            </button>
+          )}
+        </div>
       </motion.div>
     </div>
   )

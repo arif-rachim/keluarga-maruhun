@@ -211,6 +211,12 @@ export const IconPhone = (p) => (
   </svg>
 )
 
+export const IconInbox = (p) => (
+  <svg viewBox="0 0 24 24" {...base} {...p}>
+    <path d="M4 13l2.5-7h11L20 13M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5M4 13h4l1.5 2.5h5L16 13h4" />
+  </svg>
+)
+
 export const IconUnfold = (p) => (
   <svg viewBox="0 0 24 24" {...base} {...p}>
     <path d="M8 9l4-4 4 4M8 15l4 4 4-4" />

@@ -28,7 +28,16 @@ async function fileToCompressedDataURL(file, max = 320) {
   return canvas.toDataURL('image/jpeg', 0.82)
 }
 
-export function AddMemberSheet({ people, anchorId, anchorType, editPerson, onClose, onSubmit }) {
+export function AddMemberSheet({
+  people,
+  anchorId,
+  anchorType,
+  editPerson,
+  onClose,
+  onSubmit,
+  proposal = false,
+  defaultRequester = '',
+}) {
   const { t } = useI18n()
   const isEdit = !!editPerson
   const [form, setForm] = useState(() =>
@@ -58,6 +67,8 @@ export function AddMemberSheet({ people, anchorId, anchorType, editPerson, onClo
   )
   const [relType, setRelType] = useState(anchorType || 'child') // 'child' | 'spouse'
   const [anchor, setAnchor] = useState(anchorId || people[0]?.id || '')
+  const [requester, setRequester] = useState(defaultRequester)
+  const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const fileRef = useRef(null)
 
@@ -87,10 +98,15 @@ export function AddMemberSheet({ people, anchorId, anchorType, editPerson, onClo
       setError(t('add.err_anchor'))
       return
     }
+    if (proposal && !requester.trim()) {
+      setError(t('req.err_requester'))
+      return
+    }
     const data = {
       ...form,
       birthYear: form.birthYear ? Number(form.birthYear) : null,
       deathYear: form.deathYear ? Number(form.deathYear) : null,
+      ...(proposal ? { requester: requester.trim(), note: note.trim() } : {}),
     }
     if (isEdit) {
       onSubmit(data, { type: 'edit', anchorId: editPerson.id })
@@ -100,11 +116,13 @@ export function AddMemberSheet({ people, anchorId, anchorType, editPerson, onClo
   }
 
   const anchorName = people.find((p) => p.id === anchor)?.name || ''
-  const submitLabel = isEdit
-    ? t('add.save')
-    : anchorName
-      ? `${t('add.submit')} ${t('add.to')} ${anchorName.split(' ')[0]}`
-      : t('add.submit')
+  const submitLabel = proposal
+    ? t('req.submit')
+    : isEdit
+      ? t('add.save')
+      : anchorName
+        ? `${t('add.submit')} ${t('add.to')} ${anchorName.split(' ')[0]}`
+        : t('add.submit')
 
   return (
     <div className="scrim" onClick={onClose}>
@@ -119,13 +137,52 @@ export function AddMemberSheet({ people, anchorId, anchorType, editPerson, onClo
         <div className="sheet-grip" />
         <div className="sheet-head">
           <div>
-            <div className="eyebrow">{isEdit ? t('add.edit_eyebrow') : t('add.eyebrow')}</div>
-            <h2>{isEdit ? t('add.edit_title') : t('add.title')}</h2>
+            <div className="eyebrow">
+              {proposal
+                ? isEdit
+                  ? t('req.edit_eyebrow')
+                  : t('req.add_eyebrow')
+                : isEdit
+                  ? t('add.edit_eyebrow')
+                  : t('add.eyebrow')}
+            </div>
+            <h2>
+              {proposal
+                ? isEdit
+                  ? t('req.edit_title')
+                  : t('req.add_title')
+                : isEdit
+                  ? t('add.edit_title')
+                  : t('add.title')}
+            </h2>
           </div>
           <button className="close-btn" onClick={onClose} aria-label="Tutup">
             <IconClose />
           </button>
         </div>
+
+        {proposal && (
+          <>
+            <div className="field">
+              <label>{t('req.your_name')}</label>
+              <input
+                className="input"
+                placeholder={t('req.your_name_ph')}
+                value={requester}
+                onChange={(e) => setRequester(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>{t('req.note')}</label>
+              <input
+                className="input"
+                placeholder={t('req.note_ph')}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          </>
+        )}
 
         {/* Relasi (hanya saat menambah anggota baru) */}
         {!isEdit && (
