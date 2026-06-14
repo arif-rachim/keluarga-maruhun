@@ -97,7 +97,7 @@ async function main() {
   const all = []
   let cursor
   do {
-    const { data, nextCursor } = await people.page({ limit: 200, cursor })
+    const { data, nextCursor } = await people.page({ limit: 200, cursor, order: 'code.asc' })
     all.push(...data)
     cursor = nextCursor ?? undefined
   } while (cursor)

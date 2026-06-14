@@ -56,7 +56,7 @@ async function listAll(coll) {
   const rows = []
   let cursor
   do {
-    const { data, nextCursor } = await coll.page({ limit: 200, cursor })
+    const { data, nextCursor } = await coll.page({ limit: 200, cursor, order: 'code.asc' })
     rows.push(...data)
     cursor = nextCursor ?? undefined
   } while (cursor)

@@ -322,13 +322,15 @@ export async function resolveRequest(code, action, pin) {
 // Operasi data.  BACA langsung (publishable + end-user); TULIS lewat gerbang.
 // ---------------------------------------------------------------------------
 export async function listPeople() {
-  // `list()` membatasi default 50 / maks 200 baris per panggilan. Karena
-  // silsilah bisa melebihi itu, ambil SELURUH baris lewat paginasi keyset.
+  // `page()` membatasi maks 200 baris per panggilan (batas server), jadi kita
+  // paginasi. PENTING: urutkan pakai kolom UNIK (`code`) — paginasi keyset bisa
+  // MELEWATKAN baris bila kolom urut (default `created_at`) punya nilai kembar
+  // di batas halaman (mis. banyak anggota di-import pada detik yang sama).
   const c = await coll()
   const rows = []
   let cursor
   do {
-    const { data, nextCursor } = await c.page({ limit: 200, cursor })
+    const { data, nextCursor } = await c.page({ limit: 200, cursor, order: 'code.asc' })
     rows.push(...data)
     cursor = nextCursor ?? undefined
   } while (cursor)
