@@ -54,16 +54,16 @@ const INSERTS = [
   { code: 'm-ridwan-syam', name: 'Muhammad Ridwan Syam', gender: 'L', city: 'Jakarta', bio: 'Almarhum.', parentId: 'mayar', parent2Id: 'syamsuar-syarif', order: 5 },
   { code: 'lenny-syam', name: 'Lenny Syam', gender: 'P', city: 'Ambon', bio: 'Akrab dipanggil Kani.', parentId: 'mayar', parent2Id: 'syamsuar-syarif', spouseId: 'herryson-adam', order: 7 },
 
-  // Cucu — anak Tuty (♥ Daniel)
-  { code: 'fira', name: 'Fira', gender: 'P', parentId: 'tuty-syam', parent2Id: 'daniel-tuty' },
-  { code: 'akbar', name: 'Akbar', gender: 'L', parentId: 'tuty-syam', parent2Id: 'daniel-tuty' },
-  { code: 'ilham', name: 'Ilham', gender: 'L', parentId: 'tuty-syam', parent2Id: 'daniel-tuty' },
+  // Cucu — anak Tuty (♥ Daniel) — urutan sesuai WA: 1.Fira 2.Akbar 3.Ilham
+  { code: 'fira', name: 'Fira', gender: 'P', parentId: 'tuty-syam', parent2Id: 'daniel-tuty', order: 0 },
+  { code: 'akbar', name: 'Akbar', gender: 'L', parentId: 'tuty-syam', parent2Id: 'daniel-tuty', order: 1 },
+  { code: 'ilham', name: 'Ilham', gender: 'L', parentId: 'tuty-syam', parent2Id: 'daniel-tuty', order: 2 },
   // Cucu — anak M Iqbal Syam (♥ Sari)
-  { code: 'eneng', name: 'Eneng', gender: 'P', city: 'Jakarta', parentId: 'm-iqbal-syam-tuxtu', parent2Id: 'sari-iqbal' },
-  // Cucu — anak Lenny (♥ Herryson Adam)
-  { code: 'kyla', name: 'Kyla', gender: 'P', parentId: 'lenny-syam', parent2Id: 'herryson-adam' },
-  { code: 'radja', name: 'Radja', gender: 'L', parentId: 'lenny-syam', parent2Id: 'herryson-adam' },
-  { code: 'ara', name: 'Ara', gender: 'P', parentId: 'lenny-syam', parent2Id: 'herryson-adam' },
+  { code: 'eneng', name: 'Eneng', gender: 'P', city: 'Jakarta', parentId: 'm-iqbal-syam-tuxtu', parent2Id: 'sari-iqbal', order: 0 },
+  // Cucu — anak Lenny (♥ Herryson Adam) — urutan WA: 1.Kyla 2.Radja 3.Ara
+  { code: 'kyla', name: 'Kyla', gender: 'P', parentId: 'lenny-syam', parent2Id: 'herryson-adam', order: 0 },
+  { code: 'radja', name: 'Radja', gender: 'L', parentId: 'lenny-syam', parent2Id: 'herryson-adam', order: 1 },
+  { code: 'ara', name: 'Ara', gender: 'P', parentId: 'lenny-syam', parent2Id: 'herryson-adam', order: 2 },
 ]
 
 // ── PATCH anggota yang sudah ada (hanya field tertentu) ──────────────────────
@@ -75,6 +75,10 @@ const PATCHES = {
   'm-iqbal-syam-tuxtu': { spouse_id: 'sari-iqbal', parent2_id: 'syamsuar-syarif', sibling_order: 4, gender: 'L', city: 'Jakarta' },
   // Yelfy: pindahkan jadi anak Mayar (bukan anak Memmy)
   yelfy: { parent_id: 'mayar', parent2_id: 'syamsuar-syarif', sibling_order: 6 },
+  // Urutan anak Yelfy sesuai WA: 1.Rizqy 2.Vanissa 3.Ferdy
+  rizqy: { sibling_order: 0 },
+  vanisa: { sibling_order: 1 },
+  ferdiansyah: { sibling_order: 2 },
 }
 
 // ── HAPUS duplikat stub ──────────────────────────────────────────────────────
