@@ -29,6 +29,11 @@ import {
 
 const REL_LABEL = { child: 'req.rel_child', spouse: 'req.rel_spouse' }
 
+// Versi + tanggal build disuntik Vite (lihat vite.config.js). Ditampilkan kecil
+// di header agar setiap deploy baru bisa diverifikasi langsung dari aplikasi.
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+const BUILD_DATE = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : ''
+
 // Ringkasan singkat perubahan untuk ditampilkan di kartu usulan.
 function editSummary(target, data, t) {
   const fields = [
@@ -420,7 +425,12 @@ export default function App() {
           </div>
           <div className="brand-text">
             <div className="k">Maruhun</div>
-            <div className="s">{t('brand.subtitle')}</div>
+            <div className="s">
+              {t('brand.subtitle')}
+              <span className="brand-ver" title={BUILD_DATE ? `Build ${BUILD_DATE}` : undefined}>
+                v{APP_VERSION}
+              </span>
+            </div>
           </div>
         </div>
         <div className="topbar-actions">

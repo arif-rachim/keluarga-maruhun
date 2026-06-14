@@ -1,7 +1,7 @@
 {
   "name": "silsilah-maruhun",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Silsilah Keluarga Datuk Maruhun — pohon keluarga interaktif yang menghubungkan keturunan di seluruh dunia.",
   "scripts": {

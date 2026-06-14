@@ -189,6 +189,16 @@ textarea {
   color: var(--text-faint);
   margin-top: 3px;
 }
+.brand-ver {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  background: color-mix(in srgb, var(--ivory) 8%, transparent);
+  opacity: 0.7;
+}
 
 .topbar-actions {
   display: flex;
