@@ -1,11 +1,11 @@
 // Data silsilah Keluarga Datuk Maruhun (Mahmud, gelar Datuk Maruhun, wafat 1961).
 // Sumber: cerminan database production (Manggaleh, tenant silsilah-maruhun/dev).
-// Disinkronkan otomatis dari production pada 2026-06-15 — 232 anggota.
+// Disinkronkan otomatis dari production pada 2026-06-15 — 233 anggota.
 // Untuk memperbarui: subkan dari production lagi (jangan sunting manual sebagai sumber utama).
 
 export const SEED_PEOPLE = [
   { id: "datuk-maruhun", name: "Datuk Maruhun", gender: "L", birthYear: null, deathYear: 1961, city: "", country: "", bio: "diusulkan ubah", photo: null, parentId: null, spouseId: null },
-  { id: "karangan", name: "Karangan", gender: "L", birthYear: 1919, deathYear: 1981, city: "", country: "", bio: "Mak Dang (anak tertua), gelar Sutan Mangkuto. Lahir Bukittinggi 18 Juli 1919, wafat Jakarta 25 Maret 1981. Selalu memperhatikan semua kemenakan.", photo: null, parentId: "datuk-maruhun", parent2Id: "siti-amah", spouseId: "nurjani", order: 0 },
+  { id: "karangan", name: "Karangan", gender: "L", birthYear: 1919, deathYear: 1981, city: "", country: "", bio: "Mak Dang (anak tertua), gelar Sutan Mangkuto. Lahir Bukittinggi 18 Juli 1919, wafat Jakarta 25 Maret 1981. Selalu memperhatikan semua kemenakan.", photo: null, parentId: "datuk-maruhun", parent2Id: "siti-amah", spouseId: "nurjani", spouseIds: ["nurjani", "syamsinar"], order: 0 },
   { id: "tante-uni", name: "Azirni", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "Almarhumah. Dipanggil Uni Azir / Azirni.", photo: null, parentId: "karangan", parent2Id: "nurjani", spouseId: null, order: 0 },
   { id: "alfi-syukri", name: "Alfi Syukri", gender: "L", birthYear: 1974, deathYear: null, city: "", country: "", bio: "Akrab dipanggil Uda/Da Alfi; jago masak rendang. Lahir 25 Desember 1974.", photo: null, parentId: "tante-uni", spouseId: null, order: 0 },
   { id: "fatir", name: "Fatir", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "Anak Alfi Syukri.", photo: null, parentId: "alfi-syukri", spouseId: null },
@@ -14,7 +14,7 @@ export const SEED_PEOPLE = [
   { id: "nabila", name: "Nabila", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "Anak Iwan; cucu Tante Uni (Azirni).", photo: null, parentId: "iwan", spouseId: null },
   { id: "yahya", name: "Yahya", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "Anak Iwan.", photo: null, parentId: "iwan", spouseId: null },
   { id: "didit", name: "Didit Al Hamdi", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "tante-uni", spouseId: null, order: 2 },
-  { id: "ellyzar", name: "Ellyzar Karangan", gender: "P", birthYear: 1948, deathYear: null, city: "Bukittinggi (Tarok)", country: "Indonesia", bio: "Akrab dipanggil TT Ely (di Bukittinggi). Lahir 8 Februari 1948.", photo: null, parentId: "karangan", parent2Id: "nurjani", spouseId: null, order: 1 },
+  { id: "ellyzar", name: "Ellyzar Karangan", gender: "P", birthYear: 1948, deathYear: null, city: "Bukittinggi (Tarok)", country: "Indonesia", bio: "Akrab dipanggil TT Ely (di Bukittinggi). Lahir 8 Februari 1948.", photo: null, parentId: "karangan", parent2Id: "syamsinar", spouseId: null, order: 1 },
   { id: "erzy", name: "Erzy Barnita", gender: "P", birthYear: 1974, deathYear: null, city: "", country: "", bio: "Dipanggil Ezy. Anak Ellyzar.", photo: null, parentId: "ellyzar", spouseId: null },
   { id: "andi", name: "Andi", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "ellyzar", spouseId: null },
   { id: "ira", name: "Ira", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "Akrab dipanggil Uni Ira. Anak Ellyzar. Lahir 23 Maret.", photo: null, parentId: "ellyzar", spouseId: null },
@@ -102,9 +102,9 @@ export const SEED_PEOPLE = [
   { id: "moch-iqbal", name: "Mohammad Iqbal", gender: "L", birthYear: 1978, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "emawati", spouseId: null, order: 0 },
   { id: "nadien", name: "Nadien Hurriyah", gender: "P", birthYear: 1982, deathYear: null, city: "", country: "", bio: "Anak Tek Em. Suami: Riky.", photo: null, parentId: "emawati", spouseId: "riki", order: 1 },
   { id: "alfakhrie", name: "Alfakhrie Zk", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "Anak Nadien.", photo: null, parentId: "nadien", spouseId: null },
-  { id: "aji", name: "Akhmad Fazri Muchtar", gender: "L", birthYear: 1987, deathYear: null, city: "", country: "", bio: "Dipanggil Aji.", photo: null, parentId: "emawati", spouseId: "marissa", order: 2 },
-  { id: "denis", name: "Denis", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "Anak Aji.", photo: null, parentId: "aji", spouseId: null },
-  { id: "rizki-aji", name: "Rizki", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "Anak Aji.", photo: null, parentId: "aji", spouseId: null },
+  { id: "aji", name: "Achmad Fazri", gender: "L", birthYear: 1987, deathYear: null, city: "Bintaro", country: "Indonesia", bio: "Dipanggil Aji.", photo: null, parentId: "emawati", spouseId: "marissa", order: 2 },
+  { id: "rizki-aji", name: "Rizky Rasendria Salfari", gender: "L", birthYear: 2017, deathYear: null, city: "Tangerang Selatan", country: "Indonesia", bio: "Anak Aji.", photo: null, parentId: "aji", spouseId: null },
+  { id: "denis", name: "Danish Al Barokah Salfari", gender: "L", birthYear: 2019, deathYear: null, city: "Bintaro", country: "Indonesia", bio: "Anak Aji.", photo: null, parentId: "aji", spouseId: null },
   { id: "yon-hendri", name: "Yon Hendri", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "suna", parent2Id: "djama-husein", spouseId: "tukiyem", order: 3 },
   { id: "elian", name: "Elian", gender: "", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "yon-hendri", parent2Id: "tukiyem", spouseId: null, order: 0 },
   { id: "ardi", name: "Ardi", gender: "L", birthYear: 1962, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "suna", parent2Id: "djama-husein", spouseId: "waljiati", order: 4 },
@@ -209,7 +209,7 @@ export const SEED_PEOPLE = [
   { id: "joko", name: "Joko", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "Dipanggil Mas Joko; suami Ella.", photo: null, parentId: null, spouseId: "ela" },
   { id: "lynatiu-poe-yy21w", name: "Lynatiu Poe", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: null, spouseId: "adri" },
   { id: "maivendri", name: "Maivendri", gender: "L", birthYear: 1970, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: null, spouseId: "elmi" },
-  { id: "marissa", name: "Marissa Eskanalua", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "Istri Aji.", photo: null, parentId: null, spouseId: "aji" },
+  { id: "marissa", name: "Marissa Nur Eskanalua", gender: "P", birthYear: 1987, deathYear: null, city: "Bintaro", country: "Indonesia", bio: "Istri Aji.", photo: null, parentId: null, spouseId: "aji" },
   { id: "misah", name: "Nenek Misah", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "Istri kedua Datuk Maruhun (Mahmud); suku Tanjung, Koto Katiak Tigo Baleh.", photo: null, parentId: null, spouseId: "datuk-maruhun" },
   { id: "muslim", name: "Muslim Nathin", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "Almarhum/ah", photo: null, parentId: null, spouseId: "nizarti" },
   { id: "neneng", name: "Neneng Nelwati", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "Tante Neneng; istri Joharnis (Om Anis).", photo: null, parentId: null, spouseId: "joharnis" },
@@ -226,6 +226,7 @@ export const SEED_PEOPLE = [
   { id: "siti-amah", name: "Siti Amah", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "Istri pertama Datuk Maruhun (Mahmud).", photo: null, parentId: null, spouseId: "datuk-maruhun" },
   { id: "sudarno", name: "Sudarno", gender: "L", birthYear: null, deathYear: null, city: "Jakarta", country: "", bio: "", photo: null, parentId: null, spouseId: "yenny-syam-p15sd" },
   { id: "syahrul-zain", name: "Syahrul Zain St Sati", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "Almarhum/ah", photo: null, parentId: null, spouseId: "soma" },
+  { id: "syamsinar", name: "Syamsinar", gender: "P", birthYear: null, deathYear: null, city: "Tarok", country: "", bio: "Istri kedua Karangan (Inyik Karangan); ibunda Ellyzar (akrab dipanggil TT Ely).", photo: null, parentId: null, spouseId: "karangan" },
   { id: "syamsuar-syarif", name: "Syamsuar Syarif", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "Suami Asmayar (Mama Mayar).", photo: null, parentId: null, spouseId: "mayar" },
   { id: "tini-hendra", name: "Tini", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "Istri Hendra (disebut juga Tri Kasih). Almarhumah; wafat ±3 bulan setelah Hendra.", photo: null, parentId: null, spouseId: "hendra-qfcd5" },
   { id: "topan", name: "Topan", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "Suami Ira (anak Tante Ita).", photo: null, parentId: null, spouseId: "ira-ita" },
