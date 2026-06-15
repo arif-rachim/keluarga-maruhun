@@ -36,10 +36,11 @@ const PATCHES = {
   deden: { city: 'Cikampek' },
   adek: { bio: 'Almarhumah' },
 
-  // — Cabang Umar
+  // — Cabang Umar (urutan Fila: Nelly, Desi, Andri)
   khairani: { name: 'Khairani Putri Noerza' },
-  nelly: { bio: 'Almarhumah' },
-  iang: { name: 'Andri' }, // Fila: nama asli Andri, panggilan Iang (bio lama dipertahankan)
+  nelly: { bio: 'Almarhumah', sibling_order: 0 },
+  desi: { sibling_order: 1 },
+  iang: { name: 'Andri', sibling_order: 2 }, // Fila: nama asli Andri, panggilan Iang (bio lama dipertahankan)
 
   // — Cabang ibu Fila: Hj. Asma ♥ Syahrul Zain St Sati
   soma: { name: 'Hj. Asma' },
