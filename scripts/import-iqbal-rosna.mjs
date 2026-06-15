@@ -26,7 +26,7 @@ const INSERTS = [
   { code: 'hanif-muchtar', name: 'Hanif Muchtar', gender: 'L', birth_year: 1951, spouse_id: 'emawati' },
 
   // — Anak Asni baru: Elmi Astrabel ♥ Maivendri
-  { code: 'elmi', name: 'Elmi Astrabel', gender: 'P', birth_year: 1975, parent_id: 'asni', parent2_id: 'bermawi', spouse_id: 'maivendri', sibling_order: 4 },
+  { code: 'elmi', name: 'Elmi Astrabel', gender: 'P', birth_year: 1975, parent_id: 'asni', parent2_id: 'bermawi', spouse_id: 'maivendri', sibling_order: 3 },
   { code: 'maivendri', name: 'Maivendri', gender: 'L', birth_year: 1970, spouse_id: 'elmi' },
   { code: 'ardel', name: 'Ardel Aulia Dzikri', gender: 'L', birth_year: 2003, parent_id: 'elmi', parent2_id: 'maivendri', sibling_order: 0 },
   { code: 'adli', name: 'Adli Muhammad Alkhairi', gender: 'L', birth_year: 2005, parent_id: 'elmi', parent2_id: 'maivendri', sibling_order: 1 },
@@ -69,26 +69,30 @@ const INSERTS = [
 const PATCHES = {
   // Matriark
   suna: { name: 'Hj. Rosna', spouse_id: 'djama-husein' },
-  // Asni: + tahun lahir + pasangan + urutan anak Rosna
+  // Asni: + tahun lahir + pasangan + urutan anak Rosna (Asni=0)
   asni: { name: 'Hj. Asni', birth_year: 1952, spouse_id: 'bermawi', sibling_order: 0 },
-  // Allend ♥ Fitria (+ anak: lengkapi nama & tahun)
-  allend: { name: 'H. Allend Costlanto', birth_year: 1971 },
+  // Anak Asni — urutan Iqbal: Allend, Else, Albert, Elmi, Alfrio
+  allend: { name: 'H. Allend Costlanto', birth_year: 1971, sibling_order: 0 },
+  else: { sibling_order: 1 },
+  alber: { name: 'Albert Carlanto', birth_year: 1974, sibling_order: 2 },
+  elmi: { sibling_order: 3 },
+  rio: { name: 'Alfrio Marlanto', birth_year: 1983, sibling_order: 4 },
+  // Anak Allend — urutan Iqbal: Alfi, Syifa, Hamim, Rubiansah; lalu Queenara, Alka (ekstra)
   'fitria-allend': { birth_year: 1974 },
-  'alfi-maulia': { birth_year: 1995 },
-  syifa: { name: 'Syifa Assrofiyah', birth_year: 1999 },
-  hamim: { name: 'Hamim Al-Fariz', birth_year: 2001 },
-  rubben: { name: 'Rubiansah Fahbandi', birth_year: 2006 },
+  'alfi-maulia': { birth_year: 1995, sibling_order: 0 },
+  syifa: { name: 'Syifa Assrofiyah', birth_year: 1999, sibling_order: 1 },
+  hamim: { name: 'Hamim Al-Fariz', birth_year: 2001, sibling_order: 2 },
+  rubben: { name: 'Rubiansah Fahbandi', birth_year: 2006, sibling_order: 3 },
+  queenara: { sibling_order: 4 },
+  alka: { sibling_order: 5 },
   // Else ♥ Anderson (rename suami; anak diganti via INSERT+REMOVE)
   anderson: { name: 'Anderson Gazanova', birth_year: 1972 },
-  // Albert ♥ Siska (lengkapi nama + tahun; pasangan/anak production tetap)
-  alber: { name: 'Albert Carlanto', birth_year: 1974 },
-  // Alfrio (perbaiki ejaan + tahun)
-  rio: { name: 'Alfrio Marlanto', birth_year: 1983 },
-  // Emawati ♥ Hanif Muchtar (+ urutan; tahun lahir 1959 dibiarkan)
+  // Emawati ♥ Hanif Muchtar (urutan Rosna=2; tahun lahir 1959 dibiarkan)
   emawati: { spouse_id: 'hanif-muchtar', sibling_order: 2 },
-  'moch-iqbal': { birth_year: 1978 },
-  nadien: { birth_year: 1982 },
-  aji: { birth_year: 1987 },
+  // Anak Emawati — urutan Iqbal: Mohammad Iqbal, Nadien, Achmad Fazri
+  'moch-iqbal': { birth_year: 1978, sibling_order: 0 },
+  nadien: { birth_year: 1982, sibling_order: 1 },
+  aji: { birth_year: 1987, sibling_order: 2 },
   // Anak Rosna yang dipertahankan: rapikan urutan
   'ujang-glj32': { sibling_order: 6 },
   'iwan-2kuns': { sibling_order: 7 },
