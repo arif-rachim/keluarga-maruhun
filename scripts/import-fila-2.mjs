@@ -39,11 +39,13 @@ const PATCHES = {
   // — Cabang Umar
   khairani: { name: 'Khairani Putri Noerza' },
   nelly: { bio: 'Almarhumah' },
+  iang: { name: 'Andri' }, // Fila: nama asli Andri, panggilan Iang (bio lama dipertahankan)
 
   // — Cabang ibu Fila: Hj. Asma ♥ Syahrul Zain St Sati
   soma: { name: 'Hj. Asma' },
   'syahrul-zain': { name: 'Syahrul Zain St Sati' },
-  // Anak (Zein→Zain + nama formal + urutan 1..9 dari Fila). Army/Ermi ditahan.
+  // Anak (Zein→Zain + nama formal + urutan 1..9 dari Fila).
+  'ermi-zein-7ehnu': { name: 'Army Zain', sibling_order: 0 }, // Fila: anak ke-1 = Army
   'erwin-zein-och1x': { name: 'Erwin Zain', sibling_order: 1 },
   'heman-zein-9d29v': { name: 'Erman Zain', sibling_order: 2 },
   tuti: { name: 'Astuti Zain', sibling_order: 3 },
