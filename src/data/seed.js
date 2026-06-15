@@ -1,6 +1,6 @@
 // Data silsilah Keluarga Datuk Maruhun (Mahmud, gelar Datuk Maruhun, wafat 1961).
 // Sumber: cerminan database production (Manggaleh, tenant silsilah-maruhun/dev).
-// Disinkronkan otomatis dari production pada 2026-06-15 — 226 anggota.
+// Disinkronkan otomatis dari production pada 2026-06-15 — 227 anggota.
 // Untuk memperbarui: subkan dari production lagi (jangan sunting manual sebagai sumber utama).
 
 export const SEED_PEOPLE = [
@@ -112,7 +112,8 @@ export const SEED_PEOPLE = [
   { id: "aditya-azka", name: "Aditya Azka Hilmi", gender: "L", birthYear: 2004, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "ardi", parent2Id: "waljiati", spouseId: null, order: 3 },
   { id: "rinaldi", name: "Rinaldi", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "suna", parent2Id: "djama-husein", spouseId: "uun", order: 5 },
   { id: "rini", name: "Rini", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "rinaldi", parent2Id: "uun", spouseId: null, order: 0 },
-  { id: "rani-rena", name: "Rani Rena", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "rinaldi", parent2Id: "uun", spouseId: null, order: 1 },
+  { id: "rani-rena", name: "Rani", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "rinaldi", parent2Id: "uun", spouseId: null, order: 1 },
+  { id: "rena", name: "Rena", gender: "P", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "rinaldi", parent2Id: "uun", spouseId: null, order: 2 },
   { id: "ujang-glj32", name: "Ujang", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "suna", spouseId: null, order: 6 },
   { id: "iwan-2kuns", name: "Iwan", gender: "L", birthYear: null, deathYear: null, city: "", country: "", bio: "", photo: null, parentId: "suna", spouseId: null, order: 7 },
   { id: "adi", name: "Adi", gender: "P", birthYear: null, deathYear: null, city: "Jakarta (Sentiong)", country: "Indonesia", bio: "Almarhumah. Tek Adi / Nenek Adi. Anak Datuk Maruhun dari istri kedua, Nenek Misah.", photo: null, parentId: "datuk-maruhun", parent2Id: "misah", spouseId: null, order: 2 },

@@ -61,7 +61,8 @@ const INSERTS = [
   { code: 'rinaldi', name: 'Rinaldi', gender: 'L', parent_id: 'suna', parent2_id: 'djama-husein', spouse_id: 'uun', sibling_order: 5 },
   { code: 'uun', name: 'Uun', gender: 'P', spouse_id: 'rinaldi' },
   { code: 'rini', name: 'Rini', gender: 'P', parent_id: 'rinaldi', parent2_id: 'uun', sibling_order: 0 },
-  { code: 'rani-rena', name: 'Rani Rena', gender: 'P', parent_id: 'rinaldi', parent2_id: 'uun', sibling_order: 1 },
+  { code: 'rani-rena', name: 'Rani', gender: 'P', parent_id: 'rinaldi', parent2_id: 'uun', sibling_order: 1 },
+  { code: 'rena', name: 'Rena', gender: 'P', parent_id: 'rinaldi', parent2_id: 'uun', sibling_order: 2 },
 ]
 
 // PATCH per code (hanya field yang diubah)
@@ -91,6 +92,8 @@ const PATCHES = {
   // Anak Rosna yang dipertahankan: rapikan urutan
   'ujang-glj32': { sibling_order: 6 },
   'iwan-2kuns': { sibling_order: 7 },
+  // Rani & Rena = dua orang terpisah (node lama 'Rani Rena' jadi 'Rani')
+  'rani-rena': { name: 'Rani' },
 }
 
 // Anak Else lama yang diganti sesuai Iqbal
