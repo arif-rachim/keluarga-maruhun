@@ -75,53 +75,44 @@ function getClient() {
 // cukup untuk membaca/menulis koleksi — server menolak dengan 401. Setiap
 // panggilan data harus membawa token bearer end-user. Karena aplikasi ini
 // "mode terbuka" (tanpa layar login, semua melihat pohon yang sama dan koleksi
-// `people` TIDAK owner-scoped), kita buat akun end-user ANONIM per-perangkat:
-// dibuat sekali (signUp), kredensialnya disimpan lokal, lalu dipakai signIn
-// pada kunjungan berikutnya. Identitas ini hanya untuk autentikasi; semua orang
-// tetap melihat & menyunting baris yang sama.
+// `people` TIDAK owner-scoped), SEMUA pengunjung memakai SATU akun end-user
+// anonim BERSAMA.
+//
+// CATATAN (perbaikan 16 Jun 2026): dulu tiap perangkat membuat akun anonim acak
+// sendiri (signUp per-perangkat, kredensial disimpan di localStorage). Akibatnya
+// akun end-user menumpuk tak terbatas — tiap browser/perangkat baru, tiap mode
+// incognito (localStorage gagal → kredensial tak tersimpan → signUp lagi tiap
+// reload), dan tiap kali storage dibersihkan, memicu akun baru. Sekarang dipakai
+// satu akun tetap: signIn dulu; signUp HANYA sekali (oleh pengunjung pertama yang
+// membuatnya); kunjungan berikut cukup signIn. Identitas ini hanya untuk
+// autentikasi; semua orang tetap menyunting baris yang sama & tulisan tetap
+// melewati gerbang PIN (resolveRequest).
+//
+// Kredensial akun bersama boleh dioverride lewat env; bila tidak, dipakai default
+// deterministik dari tenant. Password ada di bundle klien — itu wajar: akun ini
+// tak punya privilese di atas publishable key, dan semua tulisan divalidasi
+// server-side.
 // ---------------------------------------------------------------------------
-const CREDS_KEY = 'manggaleh.anon'
-
-function loadCreds() {
-  try {
-    return JSON.parse(localStorage.getItem(CREDS_KEY) || 'null')
-  } catch {
-    return null
-  }
-}
-function saveCreds(c) {
-  try {
-    localStorage.setItem(CREDS_KEY, JSON.stringify(c))
-  } catch {
-    /* abaikan */
-  }
-}
-function randomCreds() {
-  const hex = (n) => {
-    const a = new Uint8Array(n)
-    crypto.getRandomValues(a)
-    return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('')
-  }
-  return { email: `anon-${hex(8)}@${CFG.tenant}.local`, password: hex(16), name: 'Dunsanak' }
-}
+const SHARED_EMAIL = import.meta.env.VITE_MANGGALEH_ANON_EMAIL || `anon-shared@${CFG.tenant}.local`
+const SHARED_PASSWORD = import.meta.env.VITE_MANGGALEH_ANON_PASSWORD || 'manggaleh-anon-shared'
 
 let _sessionPromise = null
 function ensureSession() {
   if (_sessionPromise) return _sessionPromise
   _sessionPromise = (async () => {
     const client = await getClient()
-    let creds = loadCreds()
-    if (creds) {
+    // signIn ke akun bersama; bila belum ada (pengunjung pertama) → signUp
+    // sekali; bila balapan/sudah ada → signIn lagi. Tidak pernah membuat akun
+    // per-perangkat, jadi incognito / clear-storage tak menambah user.
+    try {
+      await client.auth.signIn({ email: SHARED_EMAIL, password: SHARED_PASSWORD })
+    } catch {
       try {
-        await client.auth.signIn({ email: creds.email, password: creds.password })
-        return client
+        await client.auth.signUp({ email: SHARED_EMAIL, password: SHARED_PASSWORD, name: 'Dunsanak' })
       } catch {
-        // Akun anonim hilang / kredensial usang → buat yang baru di bawah.
+        await client.auth.signIn({ email: SHARED_EMAIL, password: SHARED_PASSWORD })
       }
     }
-    creds = randomCreds()
-    await client.auth.signUp({ email: creds.email, password: creds.password, name: creds.name })
-    saveCreds(creds)
     return client
   })().catch((e) => {
     _sessionPromise = null // izinkan percobaan ulang pada panggilan berikutnya

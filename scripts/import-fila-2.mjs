@@ -7,6 +7,7 @@
 //
 //   node --env-file=.env.local scripts/import-fila-2.mjs
 import { createClient } from '@manggaleh/sdk'
+import { ensureScriptSession } from './_anon-session.mjs'
 
 const E = process.env
 const cfg = {
@@ -57,7 +58,7 @@ const PATCHES = {
 
 async function main() {
   const client = createClient(cfg)
-  await client.auth.signUp({ email: `fila2-${Date.now()}@${cfg.tenant}.local`, password: 'password123', name: 'Fila import 2' })
+  await ensureScriptSession(client, cfg, 'fila-2')
   const ppl = client.data.from('people')
   const all = []
   let cursor

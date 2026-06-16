@@ -4,6 +4,7 @@
 //
 //   node --env-file=.env.local scripts/import-wa-asni.mjs
 import { createClient } from '@manggaleh/sdk'
+import { ensureScriptSession } from './_anon-session.mjs'
 
 const E = process.env
 const cfg = {
@@ -59,7 +60,7 @@ const PATCHES = {
 
 async function main() {
   const client = createClient(cfg)
-  await client.auth.signUp({ email: `asni-${Date.now()}@${cfg.tenant}.local`, password: 'password123', name: 'Asni import' })
+  await ensureScriptSession(client, cfg, 'wa-asni')
   const ppl = client.data.from('people')
   const all = []
   let cursor

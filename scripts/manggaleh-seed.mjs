@@ -9,6 +9,7 @@
 //   node --env-file=.env.local scripts/manggaleh-seed.mjs          # seed bila kosong
 //   node --env-file=.env.local scripts/manggaleh-seed.mjs --reset  # hapus semua lalu seed
 import { createClient } from '@manggaleh/sdk'
+import { ensureScriptSession } from './_anon-session.mjs'
 import { SEED_PEOPLE } from '../src/data/seed.js'
 
 const E = process.env
@@ -75,12 +76,9 @@ async function txInBatches(client, ops, label) {
 
 async function main() {
   const client = createClient(cfg)
-  // Sesi end-user anonim (Data API mewajibkannya).
-  await client.auth.signUp({
-    email: `seeder-${Date.now()}@${cfg.tenant}.local`,
-    password: 'password123',
-    name: 'Seeder',
-  })
+  // Sesi end-user anonim BERSAMA (Data API mewajibkannya) — dipakai ulang,
+  // tidak membuat akun baru tiap run.
+  await ensureScriptSession(client, cfg, 'seed')
   const coll = client.data.from(COLLECTION)
 
   let existing = await listAll(coll)

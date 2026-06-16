@@ -5,6 +5,7 @@
 //
 // Lihat rencana: 8 anak + 10 cucu Mama Mayar; perbaiki Yelfy ganda/salah-induk.
 import { createClient } from '@manggaleh/sdk'
+import { ensureScriptSession } from './_anon-session.mjs'
 
 const E = process.env
 const cfg = {
@@ -86,11 +87,7 @@ const REMOVES = ['yelfy-syam-dzc9v']
 
 async function main() {
   const client = createClient(cfg)
-  await client.auth.signUp({
-    email: `import-${Date.now()}@${cfg.tenant}.local`,
-    password: 'password123',
-    name: 'Importer',
-  })
+  await ensureScriptSession(client, cfg, 'wa-mayar')
   const people = client.data.from('people')
 
   // Muat semua → peta code -> {id}

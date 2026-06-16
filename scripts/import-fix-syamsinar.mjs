@@ -5,6 +5,7 @@
 //
 //   node --env-file=.env.local scripts/import-fix-syamsinar.mjs
 import { createClient } from '@manggaleh/sdk'
+import { ensureScriptSession } from './_anon-session.mjs'
 
 const E = process.env
 const cfg = {
@@ -41,7 +42,7 @@ const PATCHES = {
 
 async function main() {
   const client = createClient(cfg)
-  await client.auth.signUp({ email: `fix-${Date.now()}@${cfg.tenant}.local`, password: 'password123', name: 'Fix Syamsinar' })
+  await ensureScriptSession(client, cfg, 'fix-syamsinar')
   const ppl = client.data.from('people')
   const all = []
   let cursor

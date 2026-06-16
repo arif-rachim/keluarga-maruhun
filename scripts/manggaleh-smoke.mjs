@@ -12,6 +12,7 @@
 //
 //   node --env-file=.env.local scripts/manggaleh-smoke.mjs
 import { createClient } from '@manggaleh/sdk'
+import { ensureScriptSession } from './_anon-session.mjs'
 
 const E = process.env
 const cfg = {
@@ -53,13 +54,10 @@ async function main() {
     ok(e.status === 401, `tanpa sesi: list ditolak ${e.status} (publishable key saja tidak cukup)`)
   }
 
-  // 1) Sesi end-user anonim (seperti ensureSession di adapter).
-  await client.auth.signUp({
-    email: `smoke-${Date.now()}@${cfg.tenant}.local`,
-    password: 'password123',
-    name: 'Smoke',
-  })
-  ok(Boolean(client.getToken()), 'signUp end-user → token diterbitkan')
+  // 1) Sesi end-user anonim BERSAMA (seperti ensureSession di adapter) —
+  // dipakai ulang, tidak membuat akun baru tiap run.
+  await ensureScriptSession(client, cfg, 'smoke')
+  ok(Boolean(client.getToken()), 'sesi bersama → token diterbitkan')
 
   // 2) realtime subscribe (return SINKRON berupa fungsi unsub).
   unsub = client.realtime.subscribe(COLLECTION, (e) => {

@@ -5,6 +5,7 @@
 //
 //   node --env-file=.env.local scripts/import-iqbal-rosna.mjs
 import { createClient } from '@manggaleh/sdk'
+import { ensureScriptSession } from './_anon-session.mjs'
 
 const E = process.env
 const cfg = {
@@ -105,7 +106,7 @@ const REMOVES = ['dzaky', 'riska', 'caca', 'kayla']
 
 async function main() {
   const client = createClient(cfg)
-  await client.auth.signUp({ email: `iqbal-${Date.now()}@${cfg.tenant}.local`, password: 'password123', name: 'Iqbal import' })
+  await ensureScriptSession(client, cfg, 'iqbal-rosna')
   const ppl = client.data.from('people')
   const all = []
   let cursor
